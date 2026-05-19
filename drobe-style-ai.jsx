@@ -26,6 +26,7 @@ const USER_CLOSET = [
 export default function StyleAI({ onNavigate }) {
   const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState("idle"); // idle | loading | done
+  const [closetOnly, setClosetOnly] = useState(true);  // "Use Only My Closet" — ON by default
   const [occasion, setOccasion] = useState("");
   const [outfits, setOutfits] = useState([]);
   const [saved, setSaved] = useState([]);
@@ -48,6 +49,8 @@ export default function StyleAI({ onNavigate }) {
           messages: [{
             role: "user",
             content: `You are DROBE, a luxury AI personal stylist. The user wants outfit ideas for: "${val}"
+
+IMPORTANT: ${closetOnly ? "Style ONLY from the user's existing wardrobe below. Do NOT suggest any items not in their closet." : "You may suggest complementary pieces beyond their wardrobe where helpful."}
 
 Their wardrobe includes:
 ${USER_CLOSET.map((item, i) => `${i + 1}. ${item}`).join("\n")}
@@ -146,6 +149,32 @@ Respond ONLY with valid JSON, no markdown, no explanation:
       <div style={{ padding:"48px 20px 16px", borderBottom:"0.5px solid #E8E4DC" }}>
         <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, letterSpacing:"0.2em", color:"#AAA", textTransform:"uppercase", marginBottom:6 }}>AI Stylist</p>
         <h1 style={{ fontSize:24, fontWeight:400, color:"#1A1A1A" }}>Style Me</h1>
+      </div>
+
+      {/* CLOSET ONLY TOGGLE */}
+      <div style={{ padding:"10px 16px 10px", borderBottom:"0.5px solid #E8E4DC", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, fontWeight:500, color:"#1A1A1A" }}>Use Only My Closet</p>
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:"#AAA", fontWeight:300, marginTop:1 }}>
+            {closetOnly ? "Styling from your wardrobe only" : "May include outside suggestions"}
+          </p>
+        </div>
+        <button
+          onClick={() => setClosetOnly(v => !v)}
+          style={{
+            width:44, height:24, borderRadius:100, border:"none", cursor:"pointer",
+            background: closetOnly ? "#1A1A1A" : "#E0DCD5",
+            position:"relative", transition:"background .25s", flexShrink:0,
+          }}
+        >
+          <div style={{
+            width:18, height:18, borderRadius:"50%", background:"#F8F6F1",
+            position:"absolute", top:3,
+            left: closetOnly ? 23 : 3,
+            transition:"left .25s cubic-bezier(.22,1,.36,1)",
+            boxShadow:"0 1px 4px rgba(0,0,0,.18)",
+          }}/>
+        </button>
       </div>
 
       {/* PROMPT */}
