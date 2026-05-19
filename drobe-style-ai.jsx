@@ -23,7 +23,7 @@ const USER_CLOSET = [
   "Polo Ralph Lauren Button-Down Shirt (light blue, tops)",
 ];
 
-export default function StyleAI() {
+export default function StyleAI({ onNavigate }) {
   const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState("idle"); // idle | loading | done
   const [occasion, setOccasion] = useState("");
@@ -140,13 +140,7 @@ Respond ONLY with valid JSON, no markdown, no explanation:
         .dot { width:6px; height:6px; border-radius:50%; background:#1A1A1A; animation:pulse 1.2s ease-in-out infinite; }
         .dot:nth-child(2) { animation-delay:0.2s; }
         .dot:nth-child(3) { animation-delay:0.4s; }
-        @keyframes pulse { 0%,80%,100%{opacity:0.15;transform:scale(0.8);} 40%{opacity:1;transform:scale(1);} }
-
-        .bottom-nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:420px; height:64px; background:#F8F6F1; border-top:0.5px solid #E8E4DC; display:flex; align-items:center; justify-content:space-around; padding:0 8px 8px; z-index:9; }
-        .nav-item { display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; padding:6px 16px; }
-        .nav-label { font-family:'DM Sans',sans-serif; font-size:9px; color:#BBB; letter-spacing:0.06em; text-transform:uppercase; }
-        .nav-item.active .nav-label { color:#1A1A1A; }
-      `}</style>
+        @keyframes pulse { 0%,80%,100%{opacity:0.15;transform:scale(0.8);} 40%{opacity:1;transform:scale(1);} }`}</style>
 
       {/* HEADER */}
       <div style={{ padding:"48px 20px 16px", borderBottom:"0.5px solid #E8E4DC" }}>
