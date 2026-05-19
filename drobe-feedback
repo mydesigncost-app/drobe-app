@@ -1,0 +1,242 @@
+import { useState } from "react";
+
+const FEEDBACK_OPTIONS = [
+  { id: "loved",      label: "Loved it",        icon: "✦", positive: true  },
+  { id: "confident",  label: "Felt confident",  icon: "⬆",  positive: true  },
+  { id: "compliments",label: "Got compliments", icon: "◎", positive: true  },
+  { id: "again",      label: "Would wear again", icon: "↻", positive: true  },
+  { id: "formal",     label: "Too formal",       icon: "↑", positive: false },
+  { id: "casual",     label: "Too casual",       icon: "↓", positive: false },
+  { id: "uncomfortable",label:"Uncomfortable",   icon: "✕", positive: false },
+  { id: "didntwear",  label: "Didn't wear it",   icon: "○", positive: false },
+];
+
+interface FeedbackEntry {
+  outfitName: string;
+  date: string;
+  occasion: string;
+  items: { e: string; n: string }[];
+  feedback: string[];
+  wornAt: string;
+}
+
+interface Props {
+  entry: FeedbackEntry;
+  onSubmit: (entry: FeedbackEntry, feedback: string[]) => void;
+  onDismiss: () => void;
+}
+
+export function FeedbackSheet({ entry, onSubmit, onDismiss }: Props) {
+  const [selected, setSelected] = useState<string[]>([]);
+  const [submitted, setSubmitted] = useState(false);
+
+  const toggle = (id: string) => {
+    setSelected(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const submit = () => {
+    setSubmitted(true);
+    setTimeout(() => {
+      onSubmit(entry, selected);
+    }, 1400);
+  };
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)",
+      zIndex: 9999, display: "flex", alignItems: "flex-end",
+      fontFamily: "'Cormorant Garamond','Georgia',serif",
+    }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500&display=swap');
+
+        .fb-sheet { background:#F8F6F1; border-radius:20px 20px 0 0; width:100%; max-width:420px; margin:0 auto; padding:24px 24px 48px; animation:slideUp .35s cubic-bezier(.22,1,.36,1); }
+        @keyframes slideUp { from{transform:translateY(100%);} to{transform:translateY(0);} }
+
+        .fb-handle { width:36px; height:3px; background:#D4CFC6; border-radius:2px; margin:0 auto 20px; }
+
+        .fb-option { display:flex; align-items:center; justify-content:space-between; padding:13px 14px; border:0.5px solid #D4CFC6; border-radius:4px; cursor:pointer; background:transparent; width:100%; text-align:left; transition:all .15s; margin-bottom:8px; }
+        .fb-option:hover { border-color:#1A1A1A; background:#fff; }
+        .fb-option.sel-pos { border-color:#1A1A1A; background:#1A1A1A; color:#F8F6F1; }
+        .fb-option.sel-neg { border-color:#888; background:#F0EDE8; }
+        .fb-option-label { font-family:'DM Sans',sans-serif; font-size:13px; font-weight:400; color:inherit; }
+        .fb-option-icon { font-size:14px; opacity:.55; }
+
+        .fb-submit { width:100%; padding:15px; background:#1A1A1A; color:#F8F6F1; border:none; border-radius:2px; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; transition:background .15s; margin-top:4px; }
+        .fb-submit:hover:not(:disabled) { background:#2D2D2D; }
+        .fb-submit:disabled { opacity:.3; cursor:not-allowed; }
+        .fb-skip { width:100%; padding:10px; background:transparent; border:none; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:12px; color:#AAA; margin-top:4px; transition:color .15s; }
+        .fb-skip:hover { color:#1A1A1A; }
+
+        .fb-success { display:flex; flex-direction:column; align-items:center; padding:20px 0 8px; text-align:center; }
+        .fb-check { width:52px; height:52px; border:0.5px solid #1A1A1A; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:16px; animation:pop .4s cubic-bezier(.22,1,.36,1); }
+        @keyframes pop { from{transform:scale(.5);opacity:0;} to{transform:scale(1);opacity:1;} }
+
+        .outfit-preview { display:flex; gap:6px; margin-bottom:20px; }
+        .preview-piece { flex:1; background:#F4F1EC; border-radius:5px; height:44px; display:flex; align-items:center; justify-content:center; font-size:18px; }
+      `}</style>
+
+      <div className="fb-sheet">
+        <div className="fb-handle" />
+
+        {!submitted ? (
+          <>
+            {/* Outfit reference */}
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, letterSpacing:".18em", color:"#AAA", textTransform:"uppercase", marginBottom:5 }}>
+              {entry.date} · {entry.occasion}
+            </p>
+            <h2 style={{ fontSize:24, fontWeight:300, color:"#1A1A1A", marginBottom:14 }}>
+              How did <em style={{ fontStyle:"italic" }}>{entry.outfitName}</em> feel?
+            </h2>
+
+            {/* Piece preview */}
+            <div className="outfit-preview">
+              {entry.items.map((item, i) => (
+                <div key={i} className="preview-piece">{item.e}</div>
+              ))}
+            </div>
+
+            {/* Feedback options */}
+            <div>
+              {FEEDBACK_OPTIONS.map(opt => {
+                const isSel = selected.includes(opt.id);
+                return (
+                  <button
+                    key={opt.id}
+                    className={`fb-option${isSel ? (opt.positive ? " sel-pos" : " sel-neg") : ""}`}
+                    onClick={() => toggle(opt.id)}
+                  >
+                    <span className="fb-option-label">{opt.label}</span>
+                    <span className="fb-option-icon">{opt.icon}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button className="fb-submit" onClick={submit} disabled={selected.length === 0}>
+              Save feedback
+            </button>
+            <button className="fb-skip" onClick={onDismiss}>Skip for now</button>
+          </>
+        ) : (
+          <div className="fb-success">
+            <div className="fb-check">✓</div>
+            <h2 style={{ fontSize:24, fontWeight:300, color:"#1A1A1A", marginBottom:8 }}>DROBE is learning.</h2>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:13, color:"#888", fontWeight:300, lineHeight:1.7, maxWidth:240 }}>
+              Your feedback makes future outfit suggestions smarter and more personal.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+// ── FEEDBACK HISTORY CARD ─────────────────────────────────────────────────
+interface HistoryProps {
+  entries: FeedbackEntry[];
+  onNavigate?: (screen: string) => void;
+}
+
+export function FeedbackHistory({ entries, onNavigate }: HistoryProps) {
+  if (entries.length === 0) return null;
+
+  const positiveIds = new Set(["loved","confident","compliments","again"]);
+
+  const getScore = (feedback: string[]) => {
+    const pos = feedback.filter(f => positiveIds.has(f)).length;
+    const neg = feedback.filter(f => !positiveIds.has(f)).length;
+    if (pos > 0 && neg === 0) return { label:"Loved", color:"#2D6A4F" };
+    if (pos > neg) return { label:"Good", color:"#52796F" };
+    if (neg > pos) return { label:"Mixed", color:"#888" };
+    return { label:"Noted", color:"#AAA" };
+  };
+
+  return (
+    <div style={{ fontFamily:"'Cormorant Garamond','Georgia',serif" }}>
+      <style>{`
+        .fh-card { background:#fff; border:0.5px solid #E8E4DC; border-radius:8px; padding:12px 14px; margin-bottom:10px; }
+        .fh-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+        .fh-tag { font-family:'DM Sans',sans-serif; font-size:10px; border:0.5px solid #E0DCD5; border-radius:100px; padding:3px 10px; color:#888; background:#F8F6F1; }
+        .fh-tag.pos { border-color:#2D6A4F; color:#2D6A4F; background:#E8F4EF; }
+        .fh-tag.neg { border-color:#AAA; color:#888; background:#F4F1EC; }
+      `}</style>
+
+      <div style={{ display:"flex", alignItems:"baseline", justifyContent:"space-between", marginBottom:12 }}>
+        <span style={{ fontSize:18, fontWeight:400, color:"#1A1A1A" }}>Wear History</span>
+        <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:"#AAA", letterSpacing:".06em" }}>{entries.length} logged</span>
+      </div>
+
+      {entries.map((entry, i) => {
+        const score = getScore(entry.feedback);
+        return (
+          <div key={i} className="fh-card">
+            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
+              <div>
+                <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, letterSpacing:".14em", color:"#AAA", textTransform:"uppercase", marginBottom:3 }}>
+                  {entry.date}
+                </p>
+                <p style={{ fontSize:16, fontWeight:400, color:"#1A1A1A", marginBottom:2 }}>{entry.outfitName}</p>
+                <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:"#AAA", fontWeight:300 }}>{entry.occasion}</p>
+              </div>
+              <div style={{ display:"flex", gap:5, flexShrink:0, marginLeft:8 }}>
+                {entry.items.slice(0,3).map((item, j) => (
+                  <div key={j} style={{ width:28, height:28, background:"#F4F1EC", borderRadius:4, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>{item.e}</div>
+                ))}
+              </div>
+            </div>
+            <div className="fh-tags">
+              <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, fontWeight:500, color:score.color, border:`0.5px solid ${score.color}`, borderRadius:100, padding:"3px 10px", background:`${score.color}18` }}>
+                {score.label}
+              </span>
+              {entry.feedback.map(f => {
+                const opt = FEEDBACK_OPTIONS.find(o => o.id === f);
+                return opt ? (
+                  <span key={f} className={`fh-tag${positiveIds.has(f) ? " pos" : " neg"}`}>
+                    {opt.label}
+                  </span>
+                ) : null;
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
+// ── MAIN EXPORT: Feedback-aware Dashboard wrapper ─────────────────────────
+interface FeedbackSystemProps {
+  pendingFeedback: FeedbackEntry | null;
+  onFeedbackSubmit: (entry: FeedbackEntry, feedback: string[]) => void;
+  onFeedbackDismiss: () => void;
+  feedbackHistory: FeedbackEntry[];
+  onNavigate?: (screen: string) => void;
+}
+
+export default function FeedbackSystem({
+  pendingFeedback,
+  onFeedbackSubmit,
+  onFeedbackDismiss,
+  feedbackHistory,
+  onNavigate,
+}: FeedbackSystemProps) {
+  return (
+    <>
+      {pendingFeedback && (
+        <FeedbackSheet
+          entry={pendingFeedback}
+          onSubmit={onFeedbackSubmit}
+          onDismiss={onFeedbackDismiss}
+        />
+      )}
+      {feedbackHistory.length > 0 && (
+        <FeedbackHistory entries={feedbackHistory} onNavigate={onNavigate} />
+      )}
+    </>
+  );
+}
