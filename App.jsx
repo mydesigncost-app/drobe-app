@@ -65,11 +65,11 @@ export default function App() {
           letter-spacing: 0.06em; text-transform: uppercase;
         }
         .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: #1A1A1A; }
-        .screen-content { padding-bottom: ${showNav ? "64px" : "0"}; min-height: 100vh; }
+        .screen-content { min-height: 100vh; }
       `}</style>
 
       {/* Active screen — only render the current one for performance */}
-      <div className="screen-content">
+      <div className="screen-content" style={{ paddingBottom: showNav ? "64px" : "0" }}>
         {screen === "onboarding" && (
           <DrobeOnboarding onComplete={() => navigate("home")} />
         )}
