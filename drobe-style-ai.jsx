@@ -135,7 +135,7 @@ Respond ONLY with valid JSON, no markdown, no explanation:
         .action-btn:hover { color:#1A1A1A; }
         .action-btn.saved { color:#1A1A1A; }
         .try-btn { background:#1A1A1A; color:#F8F6F1; border:none; border-radius:2px; padding:8px 16px; font-family:'DM Sans',sans-serif; font-size:11px; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; transition:background 0.15s; }
-        .try-btn:hover { background:#333; }
+        .try-btn:hover { background:#2D2D2D; }
 
         .dot { width:6px; height:6px; border-radius:50%; background:#1A1A1A; animation:pulse 1.2s ease-in-out infinite; }
         .dot:nth-child(2) { animation-delay:0.2s; }
