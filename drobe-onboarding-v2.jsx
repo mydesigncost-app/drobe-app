@@ -1,6 +1,29 @@
-import { useState } from "react";
+import React, { useState } from "react";
 
-const STYLE_OPTIONS = [
+type StyleId = "minimal" | "classic" | "streetwear" | "romantic" | "editorial" | "sporty";
+type PriorityId = "outfit" | "closet" | "shop" | "travel";
+
+interface StyleOption {
+  id: StyleId;
+  label: string;
+  desc: string;
+  emoji: string;
+}
+
+interface PriorityOption {
+  id: PriorityId;
+  label: string;
+}
+
+interface FormState {
+  name: string;
+  styles: StyleId[];
+  occasions: string[];
+  priorities: PriorityId[];
+}
+
+
+const STYLE_OPTIONS: StyleOption[] = [
   { id: "minimal", label: "Minimal", desc: "Clean lines, neutral tones", emoji: "◻" },
   { id: "classic", label: "Classic", desc: "Timeless, polished, refined", emoji: "◈" },
   { id: "streetwear", label: "Street", desc: "Bold, urban, expressive", emoji: "◆" },
@@ -13,7 +36,7 @@ const OCCASION_OPTIONS = [
   "Daily wear", "Work & meetings", "Date nights", "Travel", "Events & parties", "Gym & active"
 ];
 
-const PRIORITY_OPTIONS = [
+const PRIORITY_OPTIONS: PriorityOption[] = [
   { id: "outfit", label: "Daily outfit ideas" },
   { id: "closet", label: "Organize my closet" },
   { id: "shop", label: "Shop smarter" },
@@ -23,9 +46,9 @@ const PRIORITY_OPTIONS = [
 const STEPS = ["welcome", "name", "style", "occasions", "priorities", "done"];
 
 export default function DrobeOnboarding() {
-  const [step, setStep] = useState(0);
-  const [animating, setAnimating] = useState(false);
-  const [form, setForm] = useState({ name: "", styles: [], occasions: [], priorities: [] });
+  const [step, setStep] = useState<number>(0);
+  const [animating, setAnimating] = useState<boolean>(false);
+  const [form, setForm] = useState<FormState>({ name: "", styles: [], occasions: [], priorities: [] });
 
   const currentStep = STEPS[step];
 
@@ -41,9 +64,9 @@ export default function DrobeOnboarding() {
     setTimeout(() => { setStep((s) => Math.max(s - 1, 0)); setAnimating(false); }, 280);
   };
 
-  const toggleStyle = (id) => setForm((f) => ({ ...f, styles: f.styles.includes(id) ? f.styles.filter((s) => s !== id) : [...f.styles, id] }));
-  const toggleOccasion = (o) => setForm((f) => ({ ...f, occasions: f.occasions.includes(o) ? f.occasions.filter((x) => x !== o) : [...f.occasions, o] }));
-  const togglePriority = (id) => setForm((f) => ({ ...f, priorities: f.priorities.includes(id) ? f.priorities.filter((x) => x !== id) : [...f.priorities, id] }));
+  const toggleStyle = (id: StyleId): void => setForm((f) => ({ ...f, styles: f.styles.includes(id) ? f.styles.filter((s) => s !== id) : [...f.styles, id] }));
+  const toggleOccasion = (o: string): void => setForm((f) => ({ ...f, occasions: f.occasions.includes(o) ? f.occasions.filter((x) => x !== o) : [...f.occasions, o] }));
+  const togglePriority = (id: PriorityId): void => setForm((f) => ({ ...f, priorities: f.priorities.includes(id) ? f.priorities.filter((x) => x !== id) : [...f.priorities, id] }));
 
   const canProceed = () => {
     if (currentStep === "name") return form.name.trim().length > 0;
@@ -168,7 +191,7 @@ export default function DrobeOnboarding() {
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, letterSpacing: "0.18em", color: "#888", textTransform: "uppercase", marginBottom: 16 }}>Let's start with you</p>
                 <h2 style={{ fontSize: 38, fontWeight: 300, lineHeight: 1.1, color: "#1A1A1A" }}>What should<br />we call you?</h2>
               </div>
-              <input className="name-input" placeholder="Your first name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && canProceed() && goNext()} autoFocus />
+              <input className="name-input" placeholder="Your first name" value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, name: e.target.value }))} onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && canProceed() && goNext()} autoFocus />
               <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#AAA", marginTop: 12 }}>DROBE will use this to personalize your experience</p>
               <div style={{ marginTop: "auto", paddingTop: 40 }}>
                 <button className="cta-btn" onClick={goNext} disabled={!canProceed()}>Continue</button>
