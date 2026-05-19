@@ -1,11 +1,40 @@
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 
-const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const DAYS_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const DOW = ["S","M","T","W","T","F","S"];
+type ClothingItem = {
+  e: string;
+  n: string;
+};
 
-const OUTFITS = [
+type Outfit = {
+  name: string;
+  bg: string;
+  emoji: string;
+  items: ClothingItem[];
+};
+
+type PlannedOutfits = Record<string, number>;
+
+type SelectedDate = {
+  y: number;
+  m: number;
+  d: number;
+};
+
+type CalendarCell = {
+  d: number;
+  current: boolean;
+};
+
+type SwapChoice = ClothingItem & {
+  i: number;
+};
+
+const MONTHS: string[] = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTHS_SHORT: string[] = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const DAYS_SHORT: string[] = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DOW: string[] = ["S","M","T","W","T","F","S"];
+
+const OUTFITS: Outfit[] = [
   { name:"Morning Minimal",   bg:"#D8D4CC", emoji:"👔", items:[{e:"👔",n:"Button Shirt"},{e:"👖",n:"Wide-Leg Jeans"},{e:"👟",n:"White Sneakers"},{e:"🕶",n:"Aviators"}] },
   { name:"Polished Presence", bg:"#C8C0B4", emoji:"🧥", items:[{e:"🧥",n:"Tailored Blazer"},{e:"🧶",n:"Turtleneck"},{e:"👖",n:"Slim Trousers"},{e:"👞",n:"Oxford Shoes"}] },
   { name:"Velvet Luxe",       bg:"#B8B0A0", emoji:"👗", items:[{e:"👗",n:"Velvet Dress"},{e:"💍",n:"Gold Earrings"},{e:"👢",n:"Ankle Boots"},{e:"🧣",n:"Silk Scarf"}] },
@@ -16,7 +45,7 @@ const OUTFITS = [
 ];
 
 // Swap alternatives per piece slot
-const SWAP_ALTS = [
+const SWAP_ALTS: ClothingItem[][] = [
   [{e:"🧥",n:"Trench Coat"},{e:"👕",n:"Silk Blouse"},{e:"🧶",n:"Cardigan"},{e:"🥼",n:"Overshirt"},{e:"🎽",n:"Crop Top"},{e:"👔",n:"Dress Shirt"},{e:"🩱",n:"Bodysuit"},{e:"🩳",n:"Cami Top"}],
   [{e:"👖",n:"Wide Jeans"},{e:"👗",n:"Midi Skirt"},{e:"🩳",n:"Bermuda Shorts"},{e:"🎽",n:"Biker Short"},{e:"🧢",n:"Cargo Pants"},{e:"👚",n:"Maxi Skirt"},{e:"🩱",n:"Mini Skirt"},{e:"🧦",n:"Pleated Trouser"}],
   [{e:"👠",n:"Strappy Heel"},{e:"👟",n:"Chunky Sneaker"},{e:"🩴",n:"Leather Sandal"},{e:"👢",n:"Knee Boot"},{e:"🥿",n:"Ballet Flat"},{e:"👞",n:"Loafer"},{e:"🥾",n:"Chelsea Boot"},{e:"👡",n:"Kitten Heel"}],
@@ -25,8 +54,8 @@ const SWAP_ALTS = [
 
 const TODAY = new Date();
 
-function seedPlanned() {
-  const p = {};
+function seedPlanned(): PlannedOutfits {
+  const p: PlannedOutfits = {};
   [1,2,3,5,7,8,9,11,12,14,15,16,17,18,19,21,22,24,25,26,28].forEach((d, i) => {
     p[`${TODAY.getFullYear()}-${TODAY.getMonth()}-${d}`] = i % OUTFITS.length;
   });
@@ -34,35 +63,40 @@ function seedPlanned() {
 }
 
 // Deep-clone outfits so swaps don't mutate originals
-function cloneOutfits(arr) { return arr.map(o => ({ ...o, items: o.items.map(it => ({ ...it })) })); }
+function cloneOutfits(arr: Outfit[]): Outfit[] {
+  return arr.map((outfit) => ({
+    ...outfit,
+    items: outfit.items.map((item) => ({ ...item })),
+  }));
+}
 
 export default function OutfitCalendar() {
   const [viewYear, setViewYear]   = useState(TODAY.getFullYear());
   const [viewMonth, setViewMonth] = useState(TODAY.getMonth());
-  const [selected, setSelected]   = useState({ y: TODAY.getFullYear(), m: TODAY.getMonth(), d: TODAY.getDate() });
-  const [planned, setPlanned]     = useState(seedPlanned);
-  const [outfitLib, setOutfitLib] = useState(() => cloneOutfits(OUTFITS));
+  const [selected, setSelected]   = useState<SelectedDate>({ y: TODAY.getFullYear(), m: TODAY.getMonth(), d: TODAY.getDate() });
+  const [planned, setPlanned]     = useState<PlannedOutfits>(seedPlanned);
+  const [outfitLib, setOutfitLib] = useState<Outfit[]>(() => cloneOutfits(OUTFITS));
   const [planCycle, setPlanCycle] = useState(0);
 
   // Detail popup state
   const [showDetail, setShowDetail] = useState(false);
   const [activePiece, setActivePiece] = useState(0);
   const [showSwap, setShowSwap]     = useState(false);
-  const [swapChoice, setSwapChoice] = useState(null);
+  const [swapChoice, setSwapChoice] = useState<SwapChoice | null>(null);
 
-  const key = (y, m, d) => `${y}-${m}-${d}`;
-  const selKey = () => key(selected.y, selected.m, selected.d);
-  const getOutfit = (k = selKey()) => {
+  const key = (y: number, m: number, d: number): string => `${y}-${m}-${d}`;
+  const selKey = (): string => key(selected.y, selected.m, selected.d);
+  const getOutfit = (k: string = selKey()): Outfit | null => {
     const idx = planned[k];
     return idx !== undefined ? outfitLib[idx] : null;
   };
 
   // Calendar cells
-  const cells = useMemo(() => {
+  const cells = useMemo<CalendarCell[]>(() => {
     const firstDay    = new Date(viewYear, viewMonth, 1).getDay();
     const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
     const daysInPrev  = new Date(viewYear, viewMonth, 0).getDate();
-    const arr = [];
+    const arr: CalendarCell[] = [];
     for (let i = firstDay - 1; i >= 0; i--) arr.push({ d: daysInPrev - i, current: false });
     for (let d = 1; d <= daysInMonth; d++)  arr.push({ d, current: true });
     const rem = arr.length % 7 === 0 ? 0 : 7 - (arr.length % 7);
@@ -70,34 +104,34 @@ export default function OutfitCalendar() {
     return arr;
   }, [viewYear, viewMonth]);
 
-  const changeMonth = (dir) => {
+  const changeMonth = (dir: number): void => {
     let m = viewMonth + dir, y = viewYear;
     if (m > 11) { m = 0; y++; }
     if (m < 0)  { m = 11; y--; }
     setViewMonth(m); setViewYear(y);
   };
 
-  const isToday = (d) => d === TODAY.getDate() && viewMonth === TODAY.getMonth() && viewYear === TODAY.getFullYear();
-  const isSel   = (d) => d === selected.d && viewMonth === selected.m && viewYear === selected.y;
+  const isToday = (d: number): boolean => d === TODAY.getDate() && viewMonth === TODAY.getMonth() && viewYear === TODAY.getFullYear();
+  const isSel   = (d: number): boolean => d === selected.d && viewMonth === selected.m && viewYear === selected.y;
 
-  const planOutfit = () => {
+  const planOutfit = (): void => {
     const next = planCycle % outfitLib.length;
     setPlanned(p => ({ ...p, [selKey()]: next }));
     setPlanCycle(c => c + 1);
   };
 
-  const removeOutfit = () => {
+  const removeOutfit = (): void => {
     setPlanned(p => { const n = { ...p }; delete n[selKey()]; return n; });
     setShowDetail(false);
   };
 
-  const confirmSwap = () => {
+  const confirmSwap = (): void => {
     if (!swapChoice) { setShowSwap(false); return; }
     const idx = planned[selKey()];
     if (idx === undefined) return;
     const updated = cloneOutfits(outfitLib);
     // If this is a shared outfit index, clone it as a new entry
-    const newOutfit = { ...updated[idx], items: updated[idx].items.map(it => ({ ...it })) };
+    const newOutfit = { ...updated[idx], items: updated[idx].items.map((item) => ({ ...item })) };
     newOutfit.items[activePiece] = { e: swapChoice.e, n: swapChoice.n };
     const newLib = [...updated, newOutfit];
     setOutfitLib(newLib);
@@ -187,7 +221,10 @@ export default function OutfitCalendar() {
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
             <span style={{ fontSize:22, fontWeight:400, color:"#1A1A1A" }}>{MONTHS[viewMonth]} {viewYear}</span>
             <div style={{ display:"flex", gap:8 }}>
-              {[[-1,"M15 18l-6-6 6-6"],[1,"M9 18l6-6-6-6"]].map(([dir, path]) => (
+              {[
+                { dir: -1, path: "M15 18l-6-6 6-6" },
+                { dir: 1, path: "M9 18l6-6-6-6" },
+              ].map(({ dir, path }) => (
                 <button key={dir} className="arr-btn" onClick={() => changeMonth(dir)}>
                   <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path d={path} strokeLinecap="round" strokeLinejoin="round"/>
