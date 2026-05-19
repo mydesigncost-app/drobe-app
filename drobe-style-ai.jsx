@@ -242,22 +242,14 @@ Respond ONLY with valid JSON, no markdown, no explanation:
                       Share
                     </button>
                   </div>
-                  <button className="try-btn">Try on →</button>
+                  <button className="try-btn" onClick={() => onNavigate && onNavigate("calendar")}>Try on →</button>
                 </div>
               </div>
             ))}
           </>
         )}
       </div>
-
-      {/* BOTTOM NAV */}
-      <div className="bottom-nav">
-        {[{l:"Home",a:false},{l:"Closet",a:false},{l:"Style AI",a:true},{l:"Profile",a:false}].map(n => (
-          <div key={n.l} className={`nav-item${n.a ? " active" : ""}`}>
-            <span className="nav-label">{n.l}</span>
-            {n.a && <div style={{ width:4, height:4, borderRadius:"50%", background:"#1A1A1A" }}/>}
-          </div>
-        ))}
+))}
       </div>
     </div>
   );
