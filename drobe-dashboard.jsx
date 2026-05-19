@@ -130,7 +130,7 @@ export default function Dashboard({ onNavigate }) {
         .refresh-btn { background:none; border:1px solid #E0DCD5; border-radius:100px; padding:4px 12px; font-family:'DM Sans',sans-serif; font-size:10px; color:#AAA; cursor:pointer; transition:all 0.15s; }
         .refresh-btn:hover { border-color:#1A1A1A; color:#1A1A1A; }
         .wear-btn { background:#1A1A1A; color:#F8F6F1; border:none; border-radius:2px; padding:8px 16px; font-family:'DM Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; transition:background 0.15s; flex-shrink:0; }
-        .wear-btn:hover { background:#333; }
+        .wear-btn:hover { background:#2D2D2D; }
         .wear-btn.worn { background:#555; }`}</style>
 
       <div style={{ flex:1, overflowY:"auto", padding:"48px 20px 100px" }}>
