@@ -38,6 +38,69 @@ function cloneOutfits(arr: typeof OUTFITS) {
   return arr.map(o => ({ ...o, items: o.items.map(it => ({ ...it })) }));
 }
 
+// ── DuplicatePicker sub-component ─────────────────────────────
+interface DupPickerProps {
+  viewYear: number;
+  viewMonth: number;
+  planned: Record<string, number>;
+  onSelect: (day: number) => void;
+  onClose: () => void;
+}
+
+function DuplicatePicker({ viewYear, viewMonth, planned, onSelect, onClose }: DupPickerProps) {
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === viewYear && today.getMonth() === viewMonth;
+
+  const keyFn = (d: number) => `${viewYear}-${viewMonth}-${d}`;
+
+  return (
+    <div className="dup-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="dup-sheet">
+        <div className="dup-handle"/>
+        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, letterSpacing:".18em", color:"#AAA", textTransform:"uppercase", marginBottom:4 }}>Copy outfit to</p>
+        <h3 style={{ fontSize:20, fontWeight:300, color:"#1A1A1A", marginBottom:2 }}>
+          {["January","February","March","April","May","June","July","August","September","October","November","December"][viewMonth]} {viewYear}
+        </h3>
+        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#AAA", fontWeight:300 }}>Tap a day to copy this outfit there</p>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:4, marginBottom:4, marginTop:10 }}>
+          {["S","M","T","W","T","F","S"].map((d,i) => (
+            <div key={i} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:"#BBB", textAlign:"center", padding:"3px 0" }}>{d}</div>
+          ))}
+        </div>
+        <div className="dup-grid">
+          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
+            const isPast = isCurrentMonth && d < today.getDate();
+            const hasOutfit = planned[keyFn(d)] !== undefined;
+            const isSel = selectedDay === d;
+            return (
+              <button
+                key={d}
+                className={`dup-day${hasOutfit ? " has-outfit" : ""}${isSel ? " selected" : ""}${isPast ? " disabled" : ""}`}
+                onClick={() => !isPast && setSelectedDay(d)}
+                disabled={isPast}
+              >
+                {d}
+              </button>
+            );
+          })}
+        </div>
+        {selectedDay !== null && planned[keyFn(selectedDay)] !== undefined && (
+          <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#C8A87A", marginBottom:10 }}>
+            ⚠ Day {selectedDay} already has an outfit — it will be replaced.
+          </p>
+        )}
+        <button className="dup-confirm" disabled={selectedDay === null} onClick={() => selectedDay && onSelect(selectedDay)}>
+          Copy to {selectedDay ? `Day ${selectedDay}` : "selected day"}
+        </button>
+        <button className="dup-cancel" onClick={onClose}>cancel</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Calendar Component ─────────────────────────────────────
 interface Props {
   onNavigate?: (screen: string) => void;
 }
@@ -64,6 +127,13 @@ export default function OutfitCalendar({ onNavigate }: Props) {
   // ── Plan outfit flow ──────────────────────────────────────
   const [showPlan, setShowPlan] = useState(false);
   const [planDate, setPlanDate] = useState("");
+
+  // ── Favorites ──────────────────────────────────────────────
+  const [favorites, setFavorites] = useState<string[]>([]);
+
+  // ── Duplicate outfit ───────────────────────────────────────
+  const [showDuplicate, setShowDuplicate] = useState(false);
+  const [duplicateSource, setDuplicateSource] = useState<string | null>(null);
 
   // ── Helpers ───────────────────────────────────────────────
   const key      = (y: number, m: number, d: number) => `${y}-${m}-${d}`;
@@ -162,6 +232,30 @@ export default function OutfitCalendar({ onNavigate }: Props) {
     setShowSwap(false);
   };
 
+  // ── Favorite toggle ──────────────────────────────────────────
+  const toggleFavorite = () => {
+    const k = selKey();
+    setFavorites(prev =>
+      prev.includes(k) ? prev.filter(f => f !== k) : [...prev, k]
+    );
+  };
+
+  // ── Duplicate outfit to another day ──────────────────────────
+  const openDuplicate = () => {
+    setDuplicateSource(selKey());
+    setShowDuplicate(true);
+  };
+
+  const duplicateTo = (targetDay: number) => {
+    if (!duplicateSource) return;
+    const srcIdx = planned[duplicateSource];
+    if (srcIdx === undefined) return;
+    const targetKey = key(viewYear, viewMonth, targetDay);
+    setPlanned(p => ({ ...p, [targetKey]: srcIdx }));
+    setShowDuplicate(false);
+    setShowDetail(false);
+  };
+
   // FIX: open detail with specific piece pre-selected and highlighted
   const openDetail = (piece: number = 0) => {
     setActivePiece(piece);
@@ -255,6 +349,22 @@ export default function OutfitCalendar({ onNavigate }: Props) {
 
         @keyframes fadeUp { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
         .fade-up { animation:fadeUp .3s ease both; }
+
+        /* ── Duplicate day picker ── */
+        .dup-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:99999; display:flex; align-items:flex-end; }
+        .dup-sheet { background:#F8F6F1; border-radius:20px 20px 0 0; width:100%; max-width:420px; margin:0 auto; padding:20px 20px 44px; animation:slideUp .32s cubic-bezier(.22,1,.36,1); }
+        @keyframes slideUp { from{transform:translateY(100%);} to{transform:translateY(0);} }
+        .dup-handle { width:36px; height:3px; background:#D4CFC6; border-radius:2px; margin:0 auto 18px; }
+        .dup-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin:14px 0; }
+        .dup-day { width:100%; aspect-ratio:1; border-radius:4px; border:0.5px solid #E0DCD5; background:transparent; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:11px; color:#1A1A1A; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+        .dup-day:hover { background:#F0EDE8; border-color:#1A1A1A; }
+        .dup-day.has-outfit { background:#F4F1EC; }
+        .dup-day.selected { background:#1A1A1A; color:#F8F6F1; border-color:#1A1A1A; }
+        .dup-day.disabled { color:#DDD; cursor:not-allowed; border-color:#F0EDE8; }
+        .dup-confirm { width:100%; padding:14px; background:#1A1A1A; color:#F8F6F1; border:none; border-radius:2px; font-family:'DM Sans',sans-serif; font-size:12px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; transition:background .15s; }
+        .dup-confirm:hover { background:#2D2D2D; }
+        .dup-confirm:disabled { opacity:.3; cursor:not-allowed; }
+        .dup-cancel { width:100%; padding:10px; background:transparent; border:none; font-family:'DM Sans',sans-serif; font-size:11px; color:#AAA; cursor:pointer; margin-top:4px; }
       `}</style>
 
       {/* ══════════════════════════════════════════════
@@ -359,9 +469,17 @@ export default function OutfitCalendar({ onNavigate }: Props) {
                 ))}
               </div>
 
-              <button className="det-btn" style={{ width:"100%" }} onClick={removeOutfit}>
-                Remove outfit
-              </button>
+              <div style={{ display:"flex", gap:8 }}>
+                <button className="det-btn" style={{ flex:1 }} onClick={removeOutfit}>Remove</button>
+                <button
+                  className="det-btn"
+                  style={{ flex:1, color: favorites.includes(selKey()) ? "#C8A87A" : undefined,
+                           borderColor: favorites.includes(selKey()) ? "#C8A87A" : undefined }}
+                  onClick={toggleFavorite}
+                >
+                  {favorites.includes(selKey()) ? "♥ Favorited" : "♡ Favorite"}
+                </button>
+              </div>
             </>
           ) : (
             /* FIX 2: Empty day panel — stays on calendar, shows plan button */
@@ -470,14 +588,27 @@ export default function OutfitCalendar({ onNavigate }: Props) {
 
               <div style={{ height:"0.5px", background:"rgba(248,246,241,0.14)", marginBottom:14 }}/>
 
-              {/* FIX 4: "Wear this" → green confirmation → closes popup → triggers feedback → routes correctly */}
-              <div style={{ display:"flex", gap:8 }}>
+              {/* Action buttons row 1: Remove · Modify · Favorite */}
+              <div style={{ display:"flex", gap:8, marginBottom:8 }}>
                 <button className="act-btn act-ghost" onClick={removeOutfit}>Remove</button>
                 <button className="act-btn act-ghost" onClick={() => { setSwapChoice(null); setShowSwap(true); }}>Modify</button>
+                <button
+                  className="act-btn act-ghost"
+                  onClick={toggleFavorite}
+                  style={{ color: favorites.includes(selKey()) ? "#F8C8A0" : undefined,
+                           borderColor: favorites.includes(selKey()) ? "rgba(248,200,160,.6)" : undefined }}
+                >
+                  {favorites.includes(selKey()) ? "♥ Saved" : "♡ Save"}
+                </button>
+              </div>
+              {/* Action buttons row 2: Copy to day · Wear this */}
+              <div style={{ display:"flex", gap:8 }}>
+                <button className="act-btn act-ghost" onClick={openDuplicate}>Copy to day</button>
                 <button
                   className={`act-btn act-solid${wornLogged ? " logged" : ""}`}
                   onClick={wearOutfit}
                   disabled={wornLogged}
+                  style={{ flex:2 }}
                 >
                   {wornLogged ? "✓ Logged!" : "Wear this"}
                 </button>
@@ -508,6 +639,17 @@ export default function OutfitCalendar({ onNavigate }: Props) {
           </div>
 
         </div>
+      )}
+
+      {/* ── Duplicate day picker ── */}
+      {showDuplicate && (
+        <DuplicatePicker
+          viewYear={viewYear}
+          viewMonth={viewMonth}
+          planned={planned}
+          onSelect={duplicateTo}
+          onClose={() => setShowDuplicate(false)}
+        />
       )}
 
       {/* ── Feedback sheet (after wearing) ── */}
