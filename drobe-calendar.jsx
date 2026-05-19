@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { FeedbackSheet } from "./drobe-feedback";
 import PlanOutfit from "./drobe-plan-outfit";
 
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -50,6 +51,8 @@ export default function OutfitCalendar({ onNavigate }) {
   const [activePiece, setActivePiece] = useState(0);
   const [showSwap, setShowSwap]     = useState(false);
   const [wornLogged, setWornLogged]  = useState(false);
+  const [pendingFeedback, setPending] = useState<any>(null);
+  const [feedbackHistory, setFeedbackHistory] = useState<any[]>([]);
   const [showPlan, setShowPlan]       = useState(false);
   const [planDate, setPlanDate]       = useState("");
   const [swapChoice, setSwapChoice] = useState(null);
@@ -97,9 +100,20 @@ export default function OutfitCalendar({ onNavigate }) {
 
   const wearOutfit = () => {
     setWornLogged(true);
+    const outfit = getOutfit();
+    const items = getItems();
+    const entry = {
+      outfitName: outfit?.name || "Today's Look",
+      date: selectedDateStr,
+      occasion: "Planned",
+      items: items || [],
+      feedback: [],
+      wornAt: new Date().toISOString(),
+    };
     setTimeout(() => {
       setWornLogged(false);
       setShowDetail(false);
+      setPending(entry);
     }, 1800);
   };
 
@@ -275,18 +289,23 @@ export default function OutfitCalendar({ onNavigate }) {
       </div>
 
       {/* Bottom Nav */}
-      <div className="bottom-nav">
-        {[{l:"Home",a:false},{l:"Closet",a:false},{l:"Style AI",a:false},{l:"Calendar",a:true}].map(n => (
-          <div key={n.l} className={`nav-item${n.a ? " active" : ""}`}>
-            <span className="nav-label">{n.l}</span>
-            {n.a && <div style={{ width:4, height:4, borderRadius:"50%", background:"#1A1A1A" }}/>}
-          </div>
-        ))}
+))}
       </div>
 
       {/* ══════════════════════════════════════
           FULL-SCREEN DETAIL POPUP
       ══════════════════════════════════════ */}
+      {pendingFeedback && (
+        <FeedbackSheet
+          entry={pendingFeedback}
+          onSubmit={(entry, fb) => {
+            setFeedbackHistory(prev => [{ ...entry, feedback: fb }, ...prev]);
+            setPending(null);
+          }}
+          onDismiss={() => setPending(null)}
+        />
+      )}
+
       {showPlan && (
         <div style={{ position:"fixed", inset:0, zIndex:9999, background:"#F8F6F1" }}>
           <PlanOutfit
