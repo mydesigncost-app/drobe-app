@@ -1,29 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
-type StyleId = "minimal" | "classic" | "streetwear" | "romantic" | "editorial" | "sporty";
-type PriorityId = "outfit" | "closet" | "shop" | "travel";
-
-interface StyleOption {
-  id: StyleId;
-  label: string;
-  desc: string;
-  emoji: string;
-}
-
-interface PriorityOption {
-  id: PriorityId;
-  label: string;
-}
-
-interface FormState {
-  name: string;
-  styles: StyleId[];
-  occasions: string[];
-  priorities: PriorityId[];
-}
-
-
-const STYLE_OPTIONS: StyleOption[] = [
+const STYLE_OPTIONS = [
   { id: "minimal", label: "Minimal", desc: "Clean lines, neutral tones", emoji: "◻" },
   { id: "classic", label: "Classic", desc: "Timeless, polished, refined", emoji: "◈" },
   { id: "streetwear", label: "Street", desc: "Bold, urban, expressive", emoji: "◆" },
@@ -36,7 +13,7 @@ const OCCASION_OPTIONS = [
   "Daily wear", "Work & meetings", "Date nights", "Travel", "Events & parties", "Gym & active"
 ];
 
-const PRIORITY_OPTIONS: PriorityOption[] = [
+const PRIORITY_OPTIONS = [
   { id: "outfit", label: "Daily outfit ideas" },
   { id: "closet", label: "Organize my closet" },
   { id: "shop", label: "Shop smarter" },
@@ -45,10 +22,10 @@ const PRIORITY_OPTIONS: PriorityOption[] = [
 
 const STEPS = ["welcome", "name", "style", "occasions", "priorities", "done"];
 
-export default function DrobeOnboarding() {
-  const [step, setStep] = useState<number>(0);
-  const [animating, setAnimating] = useState<boolean>(false);
-  const [form, setForm] = useState<FormState>({ name: "", styles: [], occasions: [], priorities: [] });
+export default function DrobeOnboarding({ onComplete }) {
+  const [step, setStep] = useState(0);
+  const [animating, setAnimating] = useState(false);
+  const [form, setForm] = useState({ name: "", styles: [], occasions: [], priorities: [] });
 
   const currentStep = STEPS[step];
 
@@ -64,9 +41,9 @@ export default function DrobeOnboarding() {
     setTimeout(() => { setStep((s) => Math.max(s - 1, 0)); setAnimating(false); }, 280);
   };
 
-  const toggleStyle = (id: StyleId): void => setForm((f) => ({ ...f, styles: f.styles.includes(id) ? f.styles.filter((s) => s !== id) : [...f.styles, id] }));
-  const toggleOccasion = (o: string): void => setForm((f) => ({ ...f, occasions: f.occasions.includes(o) ? f.occasions.filter((x) => x !== o) : [...f.occasions, o] }));
-  const togglePriority = (id: PriorityId): void => setForm((f) => ({ ...f, priorities: f.priorities.includes(id) ? f.priorities.filter((x) => x !== id) : [...f.priorities, id] }));
+  const toggleStyle = (id) => setForm((f) => ({ ...f, styles: f.styles.includes(id) ? f.styles.filter((s) => s !== id) : [...f.styles, id] }));
+  const toggleOccasion = (o) => setForm((f) => ({ ...f, occasions: f.occasions.includes(o) ? f.occasions.filter((x) => x !== o) : [...f.occasions, o] }));
+  const togglePriority = (id) => setForm((f) => ({ ...f, priorities: f.priorities.includes(id) ? f.priorities.filter((x) => x !== id) : [...f.priorities, id] }));
 
   const canProceed = () => {
     if (currentStep === "name") return form.name.trim().length > 0;
@@ -91,16 +68,16 @@ export default function DrobeOnboarding() {
 
         .grain-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); opacity: 0.4; }
 
-        .style-chip { border: 1px solid #D4CFC6; border-radius: 2px; padding: 14px 16px; cursor: pointer; transition: all 0.18s ease; background: transparent; text-align: left; }
+        .style-chip { border: 0.5px solid #D4CFC6; border-radius: 2px; padding: 14px 16px; cursor: pointer; transition: all 0.18s ease; background: transparent; text-align: left; }
         .style-chip:hover { border-color: #1A1A1A; background: #fff; }
         .style-chip.selected { border-color: #1A1A1A; background: #1A1A1A; color: #F8F6F1; }
 
-        .pill { border: 1px solid #D4CFC6; border-radius: 100px; padding: 10px 20px; cursor: pointer; transition: all 0.18s ease; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 400; color: #1A1A1A; white-space: nowrap; }
+        .pill { border: 0.5px solid #D4CFC6; border-radius: 100px; padding: 10px 20px; cursor: pointer; transition: all 0.18s ease; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 400; color: #1A1A1A; white-space: nowrap; }
         .pill:hover { border-color: #1A1A1A; }
         .pill.selected { background: #1A1A1A; color: #F8F6F1; border-color: #1A1A1A; }
 
-        .priority-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #E8E4DC; cursor: pointer; transition: all 0.15s ease; }
-        .priority-row:first-child { border-top: 1px solid #E8E4DC; }
+        .priority-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 0.5px solid #E8E4DC; cursor: pointer; transition: all 0.15s ease; }
+        .priority-row:first-child { border-top: 0.5px solid #E8E4DC; }
         .priority-row:hover .priority-check { border-color: #1A1A1A; }
 
         .priority-check { width: 20px; height: 20px; border: 1px solid #D4CFC6; border-radius: 2px; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease; flex-shrink: 0; }
@@ -111,10 +88,10 @@ export default function DrobeOnboarding() {
         .cta-btn:disabled { opacity: 0.3; cursor: not-allowed; }
         .cta-btn.ghost { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.35); }
         .cta-btn.ghost:hover { border-color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.08); }
-        .cta-btn.ghost-dark { background: transparent; color: #1A1A1A; border: 1px solid #D4CFC6; }
+        .cta-btn.ghost-dark { background: transparent; color: #1A1A1A; border: 0.5px solid #D4CFC6; }
         .cta-btn.ghost-dark:hover { border-color: #1A1A1A; }
 
-        .name-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #D4CFC6; padding: 12px 0; font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 300; color: #1A1A1A; outline: none; transition: border-color 0.2s; }
+        .name-input { width: 100%; background: transparent; border: none; border-bottom: 0.5px solid #D4CFC6; padding: 12px 0; font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 300; color: #1A1A1A; outline: none; transition: border-color 0.2s; }
         .name-input::placeholder { color: #C4BFB5; }
         .name-input:focus { border-bottom-color: #1A1A1A; }
 
@@ -155,7 +132,7 @@ export default function DrobeOnboarding() {
               </div>
               <div className="fade-up-3" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <button className="cta-btn" onClick={goNext}>Begin your style profile</button>
-                <button className="cta-btn ghost" onClick={() => setStep(STEPS.length - 1)}>I already have an account</button>
+                <button className="cta-btn ghost" onClick={() => onComplete && onComplete()}>I already have an account</button>
               </div>
               <div className="fade-up-4" style={{ marginTop: 28, textAlign: "center" }}>
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "rgba(255,255,255,0.3)", letterSpacing: "0.08em" }}>
@@ -191,7 +168,7 @@ export default function DrobeOnboarding() {
                 <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, letterSpacing: "0.18em", color: "#888", textTransform: "uppercase", marginBottom: 16 }}>Let's start with you</p>
                 <h2 style={{ fontSize: 38, fontWeight: 300, lineHeight: 1.1, color: "#1A1A1A" }}>What should<br />we call you?</h2>
               </div>
-              <input className="name-input" placeholder="Your first name" value={form.name} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, name: e.target.value }))} onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && canProceed() && goNext()} autoFocus />
+              <input className="name-input" placeholder="Your first name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && canProceed() && goNext()} autoFocus />
               <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#AAA", marginTop: 12 }}>DROBE will use this to personalize your experience</p>
               <div style={{ marginTop: "auto", paddingTop: 40 }}>
                 <button className="cta-btn" onClick={goNext} disabled={!canProceed()}>Continue</button>
@@ -280,7 +257,7 @@ export default function DrobeOnboarding() {
                 Your style profile is ready. Let's build your digital wardrobe.
               </p>
               <div className="fade-up-3" style={{ width: "100%" }}>
-                <button className="cta-btn" onClick={() => alert("→ Navigate to Digital Closet")}>Enter DROBE</button>
+                <button className="cta-btn" onClick={() => onComplete && onComplete()}>Enter DROBE</button>
               </div>
               {form.styles.length > 0 && (
                 <div className="fade-up-4" style={{ marginTop: 32, display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
