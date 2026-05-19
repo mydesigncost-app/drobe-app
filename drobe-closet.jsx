@@ -1,4 +1,4 @@
-const ITEMS = [
+const ITEMS: ClosetItem[] = [
   { id:1,  cat:"tops",        brand:"Totême",          name:"Collared Button Shirt",     bg:"#D8D0C4", emoji:"👔" },
   { id:2,  cat:"bottoms",     brand:"Rag & Bone",      name:"Fit 2 Slim-Fit Jeans",      bg:"#8B9BB4", emoji:"👖" },
   { id:3,  cat:"outerwear",   brand:"Agolde",          name:"Blaze Oversized Coat",      bg:"#B8B0A0", emoji:"🧥" },
@@ -15,18 +15,30 @@ const ITEMS = [
 
 const CATS = ["All","Tops","Bottoms","Outerwear","Shoes","Accessories"];
 
-import { useState } from "react";
+import React, { useState } from "react";
+
+type Category = "tops" | "bottoms" | "outerwear" | "shoes" | "accessories";
+
+interface ClosetItem {
+  id: number;
+  cat: Category;
+  brand: string;
+  name: string;
+  bg: string;
+  emoji: string;
+}
+
 
 export default function DigitalCloset() {
-  const [activeCat, setActiveCat] = useState("All");
-  const [items, setItems] = useState(ITEMS);
-  const [showModal, setShowModal] = useState(false);
+  const [activeCat, setActiveCat] = useState<string>("All");
+  const [items, setItems] = useState<ClosetItem[]>(ITEMS);
+  const [showModal, setShowModal] = useState<boolean>(false);
 
   const filtered = activeCat === "All"
     ? items
     : items.filter(i => i.cat.toLowerCase() === activeCat.toLowerCase());
 
-  const addItem = () => {
+  const addItem = (): void => {
     const newItem = {
       id: items.length + 1,
       cat: "tops",
@@ -62,6 +74,104 @@ export default function DigitalCloset() {
 
         .bottom-nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:420px; height:64px; background:#F8F6F1; border-top:0.5px solid #E8E4DC; display:flex; align-items:center; justify-content:space-around; padding:0 8px 8px; z-index:9; }
         .nav-item { display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; padding:6px 16px; border-radius:8px; }
+        .nav-label { font-family:'DM Sans',sans-serif; font-size:9px; color:#BBB; letter-spacing:0.06em; text-transform:uppercase; }
+        .nav-item.active .nav-label { color:#1A1A1A; }
+
+        .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:20; display:flex; align-items:flex-end; }
+        .modal { background:#F8F6F1; border-radius:20px 20px 0 0; width:100%; max-width:420px; margin:0 auto; padding:24px 24px 48px; animation:slideUp 0.3s cubic-bezier(0.22,1,0.36,1); }
+        @keyframes slideUp { from{transform:translateY(100%);} to{transform:translateY(0);} }
+        .upload-zone { border:1px dashed #D4CFC6; border-radius:4px; padding:40px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; margin-bottom:16px; transition:border-color 0.15s; }
+        .upload-zone:hover { border-color:#1A1A1A; }
+        .modal-btn { width:100%; padding:15px; background:#1A1A1A; color:#F8F6F1; border:none; border-radius:2px; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; }
+      `}</style>
+
+      {/* HEADER */}
+      <div style={{ padding:"48px 20px 0", flexShrink:0 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+          <span style={{ fontSize:24, fontWeight:400, color:"#1A1A1A", letterSpacing:"0.01em" }}>My Closet</span>
+          <div style={{ display:"flex", gap:16 }}>
+            {[
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35" strokeLinecap="round"/></svg>,
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4" strokeLinecap="round"/></svg>,
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M3 9l4-4 4 4M7 5v14M21 15l-4 4-4-4M17 19V5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            ].map((icon, i) => (
+              <button key={i} style={{ background:"none", border:"none", cursor:"pointer", color:"#1A1A1A", padding:4, display:"flex" }}>{icon}</button>
+            ))}
+          </div>
+        </div>
+        <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#AAA", fontWeight:300, letterSpacing:"0.06em", marginBottom:14 }}>
+          {activeCat} · {filtered.length} items
+        </p>
+        <div className="cat-scroll">
+          {CATS.map(cat => (
+            <button key={cat} className={`cat-tab${activeCat === cat ? " active" : ""}`} onClick={() => setActiveCat(cat)}>
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* GRID */}
+      <div style={{ flex:1, overflowY:"auto", padding:"4px 20px 140px" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+          {filtered.map(item => (
+            <div key={item.id} className="item-card">
+              <div className="item-placeholder" style={{ background:item.bg }}>{item.emoji}</div>
+              <div className="item-brand">{item.brand}</div>
+              <div className="item-name">{item.name}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* FAB */}
+      <button className="fab" onClick={() => setShowModal(true)}>
+        <svg width="22" height="22" fill="none" stroke="#F8F6F1" strokeWidth="2" viewBox="0 0 24 24">
+          <path d="M12 5v14M5 12h14" strokeLinecap="round"/>
+        </svg>
+      </button>
+
+      {/* BOTTOM NAV */}
+      <div className="bottom-nav">
+        {[
+          { label:"Home", active:false },
+          { label:"Closet", active:true },
+          { label:"Style AI", active:false },
+          { label:"Profile", active:false },
+        ].map(nav => (
+          <div key={nav.label} className={`nav-item${nav.active ? " active" : ""}`}>
+            <span className="nav-label">{nav.label}</span>
+            {nav.active && <div style={{ width:4, height:4, borderRadius:"50%", background:"#1A1A1A" }}/>}
+          </div>
+        ))}
+      </div>
+
+      {/* ADD ITEM MODAL */}
+      {showModal && (
+        <div className="modal-backdrop" onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+          if ((e.target as HTMLElement).classList.contains("modal-backdrop")) {
+            setShowModal(false);
+          }
+        }}>
+          <div className="modal">
+            <div style={{ width:36, height:3, background:"#D4CFC6", borderRadius:2, margin:"0 auto 20px" }}/>
+            <h3 style={{ fontSize:24, fontWeight:300, color:"#1A1A1A", marginBottom:20 }}>Add to closet</h3>
+            <div className="upload-zone" onClick={addItem}>
+              <div style={{ fontSize:32, opacity:0.35 }}>↑</div>
+              <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:"#AAA", textAlign:"center" }}>
+                Take a photo or upload<br/>from your camera roll
+              </p>
+            </div>
+            <button className="modal-btn" onClick={addItem}>Choose Photo</button>
+            <button onClick={() => setShowModal(false)} style={{ width:"100%", padding:"12px", background:"transparent", border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontSize:12, color:"#AAA", letterSpacing:"0.04em", marginTop:4 }}>
+              cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
         .nav-label { font-family:'DM Sans',sans-serif; font-size:9px; color:#BBB; letter-spacing:0.06em; text-transform:uppercase; }
         .nav-item.active .nav-label { color:#1A1A1A; }
 
