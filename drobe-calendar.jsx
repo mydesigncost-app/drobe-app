@@ -1,3 +1,6 @@
+
+Copy
+
 import { useState, useMemo } from "react";
 import { FeedbackSheet } from "./drobe-feedback";
 import PlanOutfit from "./drobe-plan-outfit";
@@ -115,9 +118,20 @@ export default function OutfitCalendar({ onNavigate }: Props) {
   const wearOutfit = () => {
     if (wornLogged) return;
     setWornLogged(true);
+ 
     const outfit = getOutfit();
     const items  = getItems();
-    const entry  = {
+ 
+    // Persist this wear — mark the day as "worn" in planned record
+    // so modifications (swaps) are saved and tied to this date
+    const currentKey = selKey();
+    const currentIdx = planned[currentKey];
+    if (currentIdx !== undefined) {
+      // Keep the outfit locked to this day (any swaps already saved via outfitLib)
+      setPlanned(p => ({ ...p, [currentKey]: currentIdx }));
+    }
+ 
+    const entry = {
       outfitName: outfit?.name ?? "Today's Look",
       date:       selectedDateStr,
       occasion:   "Planned",
@@ -125,10 +139,15 @@ export default function OutfitCalendar({ onNavigate }: Props) {
       feedback:   [],
       wornAt:     new Date().toISOString(),
     };
+ 
     setTimeout(() => {
       setWornLogged(false);
-      setShowDetail(false);
-      setPending(entry);           // triggers feedback sheet
+      setShowDetail(false);      // close avatar popup
+      setShowSwap(false);        // close any open swap sheet
+      setSwapChoice(null);       // clear swap selection
+      setPending(entry);         // trigger feedback sheet
+      // Stay on calendar — onNavigate("calendar") keeps the view correct
+      onNavigate && onNavigate("calendar");
     }, 1800);
   };
  
