@@ -1,15 +1,12 @@
-
-Copy
-
 import { useState, useMemo } from "react";
 import { FeedbackSheet } from "./drobe-feedback";
 import PlanOutfit from "./drobe-plan-outfit";
- 
+
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const MONTHS_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const DAYS_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const DOW = ["S","M","T","W","T","F","S"];
- 
+
 const OUTFITS = [
   { name:"Morning Minimal",   bg:"#D8D4CC", emoji:"👔", items:[{e:"👔",n:"Button Shirt"},{e:"👖",n:"Wide-Leg Jeans"},{e:"👟",n:"White Sneakers"},{e:"🕶",n:"Aviators"}] },
   { name:"Polished Presence", bg:"#C8C0B4", emoji:"🧥", items:[{e:"🧥",n:"Tailored Blazer"},{e:"🧶",n:"Turtleneck"},{e:"👖",n:"Slim Trousers"},{e:"👞",n:"Oxford Shoes"}] },
@@ -19,16 +16,16 @@ const OUTFITS = [
   { name:"Sunday Soft",       bg:"#C8B870", emoji:"👒", items:[{e:"👒",n:"Sun Hat"},{e:"👗",n:"Midi Dress"},{e:"🩴",n:"Sandals"},{e:"💍",n:"Gold Ring"}] },
   { name:"Sequin Glamour",    bg:"#3D2B1F", emoji:"✨", items:[{e:"✨",n:"Sequin Top"},{e:"👖",n:"Black Trousers"},{e:"👠",n:"Heeled Mules"},{e:"👜",n:"Mini Bag"}] },
 ];
- 
+
 const SWAP_ALTS = [
   [{e:"🧥",n:"Trench Coat"},{e:"👕",n:"Silk Blouse"},{e:"🧶",n:"Cardigan"},{e:"🥼",n:"Overshirt"},{e:"🎽",n:"Crop Top"},{e:"👔",n:"Dress Shirt"},{e:"🩱",n:"Bodysuit"},{e:"🩳",n:"Cami Top"}],
   [{e:"👖",n:"Wide Jeans"},{e:"👗",n:"Midi Skirt"},{e:"🩳",n:"Bermuda Shorts"},{e:"🎽",n:"Biker Short"},{e:"🧢",n:"Cargo Pants"},{e:"👚",n:"Maxi Skirt"},{e:"🩱",n:"Mini Skirt"},{e:"🧦",n:"Pleated Trouser"}],
   [{e:"👠",n:"Strappy Heel"},{e:"👟",n:"Chunky Sneaker"},{e:"🩴",n:"Leather Sandal"},{e:"👢",n:"Knee Boot"},{e:"🥿",n:"Ballet Flat"},{e:"👞",n:"Loafer"},{e:"🥾",n:"Chelsea Boot"},{e:"👡",n:"Kitten Heel"}],
   [{e:"🧣",n:"Silk Scarf"},{e:"💍",n:"Gold Chain"},{e:"🎩",n:"Wide Brim"},{e:"🧤",n:"Leather Gloves"},{e:"👜",n:"Mini Clutch"},{e:"🕶",n:"Cat-Eye Shades"},{e:"💄",n:"Bold Lip"},{e:"🩰",n:"Ballet Flat"}],
 ];
- 
+
 const TODAY = new Date();
- 
+
 function seedPlanned() {
   const p: Record<string, number> = {};
   [1,2,3,5,7,8,9,11,12,14,15,16,17,18,19,21,22,24,25,26,28].forEach((d, i) => {
@@ -36,15 +33,15 @@ function seedPlanned() {
   });
   return p;
 }
- 
+
 function cloneOutfits(arr: typeof OUTFITS) {
   return arr.map(o => ({ ...o, items: o.items.map(it => ({ ...it })) }));
 }
- 
+
 interface Props {
   onNavigate?: (screen: string) => void;
 }
- 
+
 export default function OutfitCalendar({ onNavigate }: Props) {
   const [viewYear, setViewYear]   = useState(TODAY.getFullYear());
   const [viewMonth, setViewMonth] = useState(TODAY.getMonth());
@@ -52,22 +49,22 @@ export default function OutfitCalendar({ onNavigate }: Props) {
   const [planned, setPlanned]     = useState<Record<string, number>>(seedPlanned);
   const [outfitLib, setOutfitLib] = useState(() => cloneOutfits(OUTFITS));
   const [planCycle, setPlanCycle] = useState(0);
- 
+
   // ── Popup state ───────────────────────────────────────────
   const [showDetail, setShowDetail] = useState(false);   // full-screen avatar popup
   const [activePiece, setActivePiece] = useState(0);     // which piece is highlighted
   const [showSwap, setShowSwap]     = useState(false);   // swap sheet
   const [swapChoice, setSwapChoice] = useState<{i:number;e:string;n:string}|null>(null);
   const [wornLogged, setWornLogged] = useState(false);   // wear-this button state
- 
+
   // ── Feedback state ────────────────────────────────────────
   const [pendingFeedback, setPending]       = useState<any>(null);
   const [feedbackHistory, setFeedbackHistory] = useState<any[]>([]);
- 
+
   // ── Plan outfit flow ──────────────────────────────────────
   const [showPlan, setShowPlan] = useState(false);
   const [planDate, setPlanDate] = useState("");
- 
+
   // ── Helpers ───────────────────────────────────────────────
   const key      = (y: number, m: number, d: number) => `${y}-${m}-${d}`;
   const selKey   = () => key(selected.y, selected.m, selected.d);
@@ -76,7 +73,7 @@ export default function OutfitCalendar({ onNavigate }: Props) {
     return idx !== undefined ? outfitLib[idx] : null;
   };
   const getItems = (k = selKey()) => getOutfit(k)?.items ?? null;
- 
+
   // ── Calendar cells ────────────────────────────────────────
   const cells = useMemo(() => {
     const firstDay    = new Date(viewYear, viewMonth, 1).getDay();
@@ -89,39 +86,39 @@ export default function OutfitCalendar({ onNavigate }: Props) {
     for (let d = 1; d <= rem; d++)           arr.push({ d, current: false });
     return arr;
   }, [viewYear, viewMonth]);
- 
+
   const changeMonth = (dir: number) => {
     let m = viewMonth + dir, y = viewYear;
     if (m > 11) { m = 0; y++; }
     if (m < 0)  { m = 11; y--; }
     setViewMonth(m); setViewYear(y);
   };
- 
+
   const isToday = (d: number) =>
     d === TODAY.getDate() && viewMonth === TODAY.getMonth() && viewYear === TODAY.getFullYear();
   const isSel = (d: number) =>
     d === selected.d && viewMonth === selected.m && viewYear === selected.y;
- 
+
   // ── Date string ───────────────────────────────────────────
   const selectedDate    = new Date(selected.y, selected.m, selected.d);
   const selectedDateStr = `${DAYS_SHORT[selectedDate.getDay()]}, ${MONTHS_SHORT[selected.m]} ${selected.d}`;
   const selectedOutfit  = getOutfit();
- 
+
   // ── Actions ───────────────────────────────────────────────
   const removeOutfit = () => {
     setPlanned(p => { const n = { ...p }; delete n[selKey()]; return n; });
     setShowDetail(false);
   };
- 
+
   // FIX: "Wear this" → turns green, logs outfit, closes popup,
   // then triggers feedback sheet. Navigates back to home via onNavigate.
   const wearOutfit = () => {
     if (wornLogged) return;
     setWornLogged(true);
- 
+
     const outfit = getOutfit();
     const items  = getItems();
- 
+
     // Persist this wear — mark the day as "worn" in planned record
     // so modifications (swaps) are saved and tied to this date
     const currentKey = selKey();
@@ -130,7 +127,7 @@ export default function OutfitCalendar({ onNavigate }: Props) {
       // Keep the outfit locked to this day (any swaps already saved via outfitLib)
       setPlanned(p => ({ ...p, [currentKey]: currentIdx }));
     }
- 
+
     const entry = {
       outfitName: outfit?.name ?? "Today's Look",
       date:       selectedDateStr,
@@ -139,7 +136,7 @@ export default function OutfitCalendar({ onNavigate }: Props) {
       feedback:   [],
       wornAt:     new Date().toISOString(),
     };
- 
+
     setTimeout(() => {
       setWornLogged(false);
       setShowDetail(false);      // close avatar popup
@@ -150,7 +147,7 @@ export default function OutfitCalendar({ onNavigate }: Props) {
       onNavigate && onNavigate("calendar");
     }, 1800);
   };
- 
+
   const confirmSwap = () => {
     if (!swapChoice) { setShowSwap(false); return; }
     const idx = planned[selKey()];
@@ -164,7 +161,7 @@ export default function OutfitCalendar({ onNavigate }: Props) {
     setSwapChoice(null);
     setShowSwap(false);
   };
- 
+
   // FIX: open detail with specific piece pre-selected and highlighted
   const openDetail = (piece: number = 0) => {
     setActivePiece(piece);
@@ -173,7 +170,7 @@ export default function OutfitCalendar({ onNavigate }: Props) {
     setSwapChoice(null);
     setShowDetail(true);
   };
- 
+
   return (
     <div style={{
       minHeight: "100vh", background: "#F8F6F1",
@@ -185,21 +182,21 @@ export default function OutfitCalendar({ onNavigate }: Props) {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500&display=swap');
         * { box-sizing:border-box; margin:0; padding:0; }
- 
+
         .arr-btn { background:none; border:0.5px solid #E0DCD5; border-radius:50%; width:30px; height:30px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:border-color .15s; flex-shrink:0; }
         .arr-btn:hover { border-color:#1A1A1A; }
- 
+
         /* ── Calendar day cell ── */
         .day-cell { display:flex; flex-direction:column; align-items:center; cursor:pointer; border-radius:6px; padding:3px 2px; transition:background .15s; }
         .day-cell:hover { background:#F0EDE8; }
         .outfit-thumb { width:28px; height:36px; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:14px; margin-top:2px; }
- 
+
         /* ── Panel bottom buttons ── */
         .det-btn { flex:1; padding:10px; border-radius:2px; font-family:'DM Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; transition:all .15s; border:0.5px solid #E0DCD5; background:transparent; color:#888; }
         .det-btn:hover { border-color:#1A1A1A; color:#1A1A1A; }
         .plan-btn { width:100%; padding:14px; background:#1A1A1A; color:#F8F6F1; border:none; border-radius:2px; font-family:'DM Sans',sans-serif; font-size:11px; font-weight:500; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; margin-top:6px; transition:background .15s; }
         .plan-btn:hover { background:#2D2D2D; }
- 
+
         /* ── Full-screen avatar popup ── */
         .detail-screen {
           position: fixed; top:0; left:0; right:0; bottom:0;
@@ -210,7 +207,7 @@ export default function OutfitCalendar({ onNavigate }: Props) {
           /* hidden by default — only rendered when showDetail=true */
         }
         .detail-screen.open { transform: translateX(0); }
- 
+
         .avatar-bg { position:absolute; inset:0; z-index:0; }
         .detail-overlay {
           position:absolute; inset:0;
@@ -219,31 +216,32 @@ export default function OutfitCalendar({ onNavigate }: Props) {
             rgba(20,16,12,.6) 60%, rgba(15,12,8,.93) 80%,
             rgba(10,8,5,.98) 100%);
           z-index:1;
+          pointer-events:none;
         }
- 
-        .detail-topnav { position:absolute; top:0; left:0; right:0; padding:48px 20px 0; display:flex; align-items:center; justify-content:space-between; z-index:3; }
+
+        .detail-topnav { position:absolute; top:0; left:0; right:0; padding:48px 20px 0; display:flex; align-items:center; justify-content:space-between; z-index:20; }
         .back-circle { width:36px; height:36px; border-radius:50%; background:rgba(248,246,241,.15); border:0.5px solid rgba(248,246,241,.25); backdrop-filter:blur(8px); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background .15s; }
         .back-circle:hover { background:rgba(248,246,241,.25); }
         .avatar-circle { width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#C8A87A,#8B6840); border:1.5px solid rgba(248,246,241,.4); display:flex; align-items:center; justify-content:center; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; color:#fff; }
- 
-        .detail-bottom { position:absolute; bottom:0; left:0; right:0; z-index:3; padding:0 20px 32px; }
- 
+
+        .detail-bottom { position:absolute; bottom:0; left:0; right:0; z-index:20; padding:0 20px 32px; }
+
         /* ── Piece icons — active = highlighted white ── */
         .piece-icon { width:100%; height:52px; border-radius:8px; background:rgba(248,246,241,.12); border:1px solid rgba(248,246,241,.18); display:flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer; transition:all .15s; backdrop-filter:blur(4px); }
         .piece-icon:hover { background:rgba(248,246,241,.22); }
         .piece-icon.active { background:rgba(248,246,241,.9); border-color:#F8F6F1; }
         .piece-lbl { font-family:'DM Sans',sans-serif; font-size:8px; color:rgba(248,246,241,.5); text-align:center; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:56px; }
- 
+
         /* ── Action buttons ── */
-        .act-btn { flex:1; padding:13px 10px; border-radius:2px; font-family:'DM Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; transition:all .15s; }
+        .act-btn { flex:1; padding:14px 10px; min-height:48px; border-radius:2px; font-family:'DM Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; cursor:pointer; transition:all .15s; -webkit-tap-highlight-color:transparent; }
         .act-ghost { background:rgba(248,246,241,.08); border:0.5px solid rgba(248,246,241,.22); color:rgba(248,246,241,.65); }
         .act-ghost:hover { background:rgba(248,246,241,.16); color:#fff; }
         .act-solid { background:#F8F6F1; border:none; color:#1A1A1A; }
         .act-solid:hover { background:#fff; }
         .act-solid.logged { background:#4A7A5A; color:#fff; }
- 
+
         /* ── Swap sheet ── */
-        .swap-sheet { position:absolute; bottom:0; left:0; right:0; background:#F8F6F1; border-radius:20px 20px 0 0; padding:20px 20px 40px; z-index:10; transform:translateY(100%); transition:transform .32s cubic-bezier(.22,1,.36,1); }
+        .swap-sheet { position:absolute; bottom:0; left:0; right:0; background:#F8F6F1; border-radius:20px 20px 0 0; padding:20px 20px 40px; z-index:30; transform:translateY(100%); transition:transform .32s cubic-bezier(.22,1,.36,1); }
         .swap-sheet.open { transform:translateY(0); }
         .swap-handle { width:36px; height:3px; background:#D4CFC6; border-radius:2px; margin:0 auto 18px; }
         .swap-item { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:10px 4px; border-radius:6px; border:0.5px solid #E0DCD5; transition:all .15s; }
@@ -254,16 +252,16 @@ export default function OutfitCalendar({ onNavigate }: Props) {
         .swap-confirm { width:100%; padding:14px; background:#1A1A1A; color:#F8F6F1; border:none; border-radius:2px; font-family:'DM Sans',sans-serif; font-size:11px; font-weight:500; letter-spacing:.1em; text-transform:uppercase; cursor:pointer; margin-top:14px; transition:background .15s; }
         .swap-confirm:hover { background:#2D2D2D; }
         .swap-cancel { width:100%; padding:10px; background:transparent; border:none; font-family:'DM Sans',sans-serif; font-size:11px; color:#AAA; cursor:pointer; margin-top:4px; }
- 
+
         @keyframes fadeUp { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
         .fade-up { animation:fadeUp .3s ease both; }
       `}</style>
- 
+
       {/* ══════════════════════════════════════════════
           CALENDAR SCREEN
       ══════════════════════════════════════════════ */}
       <div style={{ flex:1, overflowY:"auto", paddingBottom:100 }}>
- 
+
         {/* Month header */}
         <div style={{ padding:"48px 20px 12px" }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
@@ -281,14 +279,14 @@ export default function OutfitCalendar({ onNavigate }: Props) {
             </div>
           </div>
         </div>
- 
+
         {/* Day-of-week strip */}
         <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", padding:"0 20px", marginBottom:4 }}>
           {DOW.map((d, i) => (
             <div key={i} style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:"#BBB", textAlign:"center", letterSpacing:".06em", textTransform:"uppercase", padding:"4px 0" }}>{d}</div>
           ))}
         </div>
- 
+
         {/* Calendar grid */}
         <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:2, padding:"0 20px 12px" }}>
           {cells.map((cell, i) => {
@@ -325,19 +323,19 @@ export default function OutfitCalendar({ onNavigate }: Props) {
             );
           })}
         </div>
- 
+
         {/* ── Detail panel (always visible below grid) ── */}
         <div style={{ background:"#F8F6F1", borderTop:"0.5px solid #E8E4DC", padding:"14px 20px 20px" }} className="fade-up">
           <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, letterSpacing:".16em", color:"#AAA", textTransform:"uppercase", marginBottom:6 }}>
             {selectedDateStr}
           </p>
- 
+
           {selectedOutfit ? (
             <>
               <p style={{ fontSize:18, fontWeight:400, color:"#1A1A1A", marginBottom:12 }}>
                 {selectedOutfit.name}
               </p>
- 
+
               {/* FIX 3: Piece icons in panel — tap to open popup with that piece pre-selected & highlighted */}
               <div style={{ display:"flex", gap:8, marginBottom:12 }}>
                 {selectedOutfit.items.map((item, i) => (
@@ -360,7 +358,7 @@ export default function OutfitCalendar({ onNavigate }: Props) {
                   </div>
                 ))}
               </div>
- 
+
               <button className="det-btn" style={{ width:"100%" }} onClick={removeOutfit}>
                 Remove outfit
               </button>
@@ -381,14 +379,14 @@ export default function OutfitCalendar({ onNavigate }: Props) {
           )}
         </div>
       </div>
- 
+
       {/* ══════════════════════════════════════════════
           FULL-SCREEN AVATAR POPUP
           Only rendered when showDetail === true
       ══════════════════════════════════════════════ */}
       {showDetail && (
         <div className="detail-screen open">
- 
+
           {/* Avatar SVG background */}
           <div className="avatar-bg">
             <svg width="100%" height="100%" viewBox="0 0 420 840" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMin slice">
@@ -431,10 +429,10 @@ export default function OutfitCalendar({ onNavigate }: Props) {
               <ellipse cx="286" cy="468" rx="12" ry="16" fill="url(#dSkin)"/>
             </svg>
           </div>
- 
+
           {/* Gradient overlay */}
           <div className="detail-overlay"/>
- 
+
           {/* Top nav */}
           <div className="detail-topnav">
             <div className="back-circle" onClick={() => { setShowDetail(false); setShowSwap(false); setSwapChoice(null); }}>
@@ -444,17 +442,17 @@ export default function OutfitCalendar({ onNavigate }: Props) {
             </div>
             <div className="avatar-circle">A</div>
           </div>
- 
+
           {/* Bottom content */}
           {selectedOutfit && (
-            <div className="detail-bottom">
+            <div className="detail-bottom" style={{ pointerEvents:"all" }}>
               <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, letterSpacing:".18em", color:"rgba(248,246,241,0.5)", textTransform:"uppercase", marginBottom:5 }}>
                 {selectedDateStr}
               </p>
               <p style={{ fontSize:30, fontWeight:300, color:"#F8F6F1", lineHeight:1.05, marginBottom:18, letterSpacing:"-0.01em" }}>
                 {selectedOutfit.name}
               </p>
- 
+
               {/* FIX 3: Piece selector — activePiece highlighted white */}
               <div style={{ display:"flex", gap:10, marginBottom:18 }}>
                 {selectedOutfit.items.map((item, i) => (
@@ -469,9 +467,9 @@ export default function OutfitCalendar({ onNavigate }: Props) {
                   </div>
                 ))}
               </div>
- 
+
               <div style={{ height:"0.5px", background:"rgba(248,246,241,0.14)", marginBottom:14 }}/>
- 
+
               {/* FIX 4: "Wear this" → green confirmation → closes popup → triggers feedback → routes correctly */}
               <div style={{ display:"flex", gap:8 }}>
                 <button className="act-btn act-ghost" onClick={removeOutfit}>Remove</button>
@@ -486,7 +484,7 @@ export default function OutfitCalendar({ onNavigate }: Props) {
               </div>
             </div>
           )}
- 
+
           {/* Swap sheet */}
           <div className={`swap-sheet${showSwap ? " open" : ""}`}>
             <div className="swap-handle"/>
@@ -508,10 +506,10 @@ export default function OutfitCalendar({ onNavigate }: Props) {
             <button className="swap-confirm" onClick={confirmSwap}>Confirm swap</button>
             <button className="swap-cancel" onClick={() => { setShowSwap(false); setSwapChoice(null); }}>cancel</button>
           </div>
- 
+
         </div>
       )}
- 
+
       {/* ── Feedback sheet (after wearing) ── */}
       {pendingFeedback && (
         <FeedbackSheet
@@ -523,7 +521,7 @@ export default function OutfitCalendar({ onNavigate }: Props) {
           onDismiss={() => setPending(null)}
         />
       )}
- 
+
       {/* ── Plan outfit full-screen flow ── */}
       {showPlan && (
         <div style={{ position:"fixed", inset:0, zIndex:9999, background:"#F8F6F1" }}>
@@ -541,8 +539,7 @@ export default function OutfitCalendar({ onNavigate }: Props) {
           />
         </div>
       )}
- 
+
     </div>
   );
 }
- 
