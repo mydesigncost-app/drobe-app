@@ -111,20 +111,7 @@ export default function DigitalCloset({ onNavigate }) {
           <path d="M12 5v14M5 12h14" strokeLinecap="round"/>
         </svg>
       </button>
-
-      {/* BOTTOM NAV */}
-      <div className="bottom-nav">
-        {[
-          { label:"Home", active:false },
-          { label:"Closet", active:true },
-          { label:"Style AI", active:false },
-          { label:"Profile", active:false },
-        ].map(nav => (
-          <div key={nav.label} className={`nav-item${nav.active ? " active" : ""}`}>
-            <span className="nav-label">{nav.label}</span>
-            {nav.active && <div style={{ width:4, height:4, borderRadius:"50%", background:"#1A1A1A" }}/>}
-          </div>
-        ))}
+))}
       </div>
 
       {/* ADD ITEM MODAL */}
