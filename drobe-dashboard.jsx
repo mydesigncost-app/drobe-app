@@ -15,7 +15,7 @@ const RECENT_LOOKS = [
   { name:"Downtown Cool",   date:"4 days ago", bg:"#8B9BB4", e:"👖" },
 ];
 
-export default function Dashboard() {
+export default function Dashboard({ onNavigate }) {
   const [outfitIdx, setOutfitIdx] = useState(0);
   const [worn, setWorn] = useState(false);
   const [weather, setWeather] = useState(null);
@@ -131,13 +131,7 @@ export default function Dashboard() {
         .refresh-btn:hover { border-color:#1A1A1A; color:#1A1A1A; }
         .wear-btn { background:#1A1A1A; color:#F8F6F1; border:none; border-radius:2px; padding:8px 16px; font-family:'DM Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; transition:background 0.15s; flex-shrink:0; }
         .wear-btn:hover { background:#333; }
-        .wear-btn.worn { background:#555; }
-
-        .bottom-nav { position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:420px; height:64px; background:#F8F6F1; border-top:0.5px solid #E8E4DC; display:flex; align-items:center; justify-content:space-around; padding:0 8px 8px; z-index:9; }
-        .nav-item { display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; padding:6px 16px; }
-        .nav-label { font-family:'DM Sans',sans-serif; font-size:9px; color:#BBB; letter-spacing:0.06em; text-transform:uppercase; }
-        .nav-item.active .nav-label { color:#1A1A1A; }
-      `}</style>
+        .wear-btn.worn { background:#555; }`}</style>
 
       <div style={{ flex:1, overflowY:"auto", padding:"48px 20px 100px" }}>
 
