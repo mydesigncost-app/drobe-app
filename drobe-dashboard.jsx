@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import FeedbackSystem from "./drobe-feedback";
 
 // ─── Outfit suggestions (later: pull from Supabase + AI) ───────────────────
 const DAILY_OUTFITS = [
@@ -16,7 +17,10 @@ const RECENT_LOOKS = [
 ];
 
 export default function Dashboard({ onNavigate }) {
-  const [outfitIdx, setOutfitIdx] = useState(0);
+  const [outfitIdx, setOutfitIdx]       = useState(0);
+  const [pendingFeedback, setPending]   = useState<any>(null);
+  const [feedbackHistory, setHistory]   = useState<any[]>([]);
+  const [feedbackBadge, setBadge]       = useState(false);
   const [worn, setWorn] = useState(false);
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
@@ -150,7 +154,17 @@ export default function Dashboard({ onNavigate }) {
               <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round"/></svg>,
               <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" strokeLinecap="round"/></svg>,
               <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35" strokeLinecap="round"/></svg>
-            ].map((icon, i) => <button key={i} className="icon-btn">{icon}</button>)}
+            ].map((icon, i) => (
+              <button key={i} className="icon-btn" style={{ position:"relative" }} onClick={() => {
+                if (i === 0) onNavigate && onNavigate("calendar");
+                if (i === 1) { if(feedbackBadge) setPending(pendingFeedback); onNavigate && onNavigate("closet"); }
+              }}>
+                {icon}
+                {i === 1 && feedbackBadge && (
+                  <div style={{ position:"absolute", top:0, right:0, width:7, height:7, background:"#1A1A1A", borderRadius:"50%", border:"1.5px solid #F8F6F1" }}/>
+                )}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -208,7 +222,19 @@ export default function Dashboard({ onNavigate }) {
           </div>
           <div style={{ padding:"10px 14px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#888", fontStyle:"italic", fontWeight:300 }}>"{outfit.note}"</p>
-            <button className={`wear-btn${worn ? " worn" : ""}`} onClick={() => setWorn(true)}>
+            <button className={`wear-btn${worn ? " worn" : ""}`} onClick={() => {
+                setWorn(true);
+                const outfit = DAILY_OUTFITS[outfitIdx];
+                const entry = {
+                  outfitName: outfit.name,
+                  date: new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),
+                  occasion: outfit.occ,
+                  items: outfit.items,
+                  feedback: [],
+                  wornAt: new Date().toISOString(),
+                };
+                setTimeout(() => { setWorn(false); setPending(entry); setBadge(true); }, 2000);
+              }}>
               {worn ? "✓ Logged" : "Wearing this"}
             </button>
           </div>
@@ -241,21 +267,21 @@ export default function Dashboard({ onNavigate }) {
           ))}
         </div>
       </div>
-
-      {/* BOTTOM NAV */}
-      <div className="bottom-nav">
-        {[
-          { l:"Home",     active:true  },
-          { l:"Closet",   active:false },
-          { l:"Style AI", active:false },
-          { l:"Profile",  active:false },
-        ].map(n => (
-          <div key={n.l} className={`nav-item${n.active ? " active" : ""}`}>
-            <span className="nav-label">{n.l}</span>
-            {n.active && <div style={{ width:4, height:4, borderRadius:"50%", background:"#1A1A1A" }}/>}
-          </div>
-        ))}
+))}
       </div>
+    </div>
+
+      <FeedbackSystem
+        pendingFeedback={pendingFeedback}
+        onFeedbackSubmit={(entry, fb) => {
+          setHistory(prev => [{ ...entry, feedback: fb }, ...prev]);
+          setPending(null);
+          setBadge(false);
+        }}
+        onFeedbackDismiss={() => { setPending(null); setBadge(false); }}
+        feedbackHistory={feedbackHistory}
+        onNavigate={onNavigate}
+      />
     </div>
   );
 }
