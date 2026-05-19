@@ -1,277 +1,287 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import FeedbackSystem from "./drobe-feedback";
 
-const STYLE_OPTIONS = [
-  { id: "minimal", label: "Minimal", desc: "Clean lines, neutral tones", emoji: "◻" },
-  { id: "classic", label: "Classic", desc: "Timeless, polished, refined", emoji: "◈" },
-  { id: "streetwear", label: "Street", desc: "Bold, urban, expressive", emoji: "◆" },
-  { id: "romantic", label: "Romantic", desc: "Soft, feminine, flowing", emoji: "◇" },
-  { id: "editorial", label: "Editorial", desc: "Avant-garde, statement pieces", emoji: "◉" },
-  { id: "sporty", label: "Sporty", desc: "Athletic, functional, fresh", emoji: "○" },
+// ─── Outfit suggestions (later: pull from Supabase + AI) ───────────────────
+const DAILY_OUTFITS = [
+  { name:"Morning Minimal",    occ:"Casual · Daily",    badge:"Today's Pick", note:"Effortless and weather-ready.",     items:[{e:"👔",n:"Button Shirt"},{e:"👖",n:"Wide-Leg Jeans"},{e:"👟",n:"White Sneakers"},{e:"🕶",n:"Aviators"}] },
+  { name:"Polished Presence",  occ:"Work · Meetings",   badge:"Work Look",    note:"The blazer anchors everything.",    items:[{e:"🧥",n:"Tailored Blazer"},{e:"🧶",n:"Wool Turtleneck"},{e:"👖",n:"Slim Trousers"},{e:"👞",n:"Oxford Shoes"}] },
+  { name:"Chic Errand",        occ:"Errands · Casual",  badge:"Easy Pick",    note:"Comfortable but never sloppy.",     items:[{e:"👕",n:"Linen Shirt"},{e:"🩳",n:"Wide Shorts"},{e:"👟",n:"Chunky Sneakers"},{e:"🎒",n:"Canvas Tote"}] },
+  { name:"Evening Edge",       occ:"Dinner · Social",   badge:"Night Out",    note:"Dark tones, quiet confidence.",     items:[{e:"🧥",n:"Longline Coat"},{e:"🖤",n:"Turtleneck"},{e:"👖",n:"Straight Jeans"},{e:"👢",n:"Chelsea Boot"}] },
 ];
 
-const OCCASION_OPTIONS = [
-  "Daily wear", "Work & meetings", "Date nights", "Travel", "Events & parties", "Gym & active"
+const RECENT_LOOKS = [
+  { name:"Polished Edit",   date:"Yesterday",  bg:"#D8D0C4", e:"🧥" },
+  { name:"Velvet Luxe",     date:"2 days ago", bg:"#B8B0A0", e:"👗" },
+  { name:"Sunday Soft",     date:"3 days ago", bg:"#C8B870", e:"👒" },
+  { name:"Downtown Cool",   date:"4 days ago", bg:"#8B9BB4", e:"👖" },
 ];
 
-const PRIORITY_OPTIONS = [
-  { id: "outfit", label: "Daily outfit ideas" },
-  { id: "closet", label: "Organize my closet" },
-  { id: "shop", label: "Shop smarter" },
-  { id: "travel", label: "Plan travel looks" },
-];
+export default function Dashboard({ onNavigate }) {
+  const [outfitIdx, setOutfitIdx]       = useState(0);
+  const [pendingFeedback, setPending]   = useState<any>(null);
+  const [feedbackHistory, setHistory]   = useState<any[]>([]);
+  const [feedbackBadge, setBadge]       = useState(false);
+  const [worn, setWorn] = useState(false);
+  const [weather, setWeather] = useState(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
 
-const STEPS = ["welcome", "name", "style", "occasions", "priorities", "done"];
+  // Time-based greeting
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
-export default function DrobeOnboarding({ onComplete }) {
-  const [step, setStep] = useState(0);
-  const [animating, setAnimating] = useState(false);
-  const [form, setForm] = useState({ name: "", styles: [], occasions: [], priorities: [] });
+  // ── Fetch real weather (OpenWeatherMap free tier) ────────────────────────
+  // Replace YOUR_API_KEY with a free key from openweathermap.org
+  // Default city: Frisco, TX — change to user's city from their profile
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        const API_KEY = "YOUR_OPENWEATHER_API_KEY"; // ← replace this
+        const city = "Frisco,TX,US";
+        const res = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=imperial`
+        );
+        const data = await res.json();
+        if (data.cod === 200) {
+          setWeather({
+            temp: Math.round(data.main.temp),
+            high: Math.round(data.main.temp_max),
+            low:  Math.round(data.main.temp_min),
+            desc: data.weather[0].description,
+            icon: getWeatherEmoji(data.weather[0].id),
+            city: data.name,
+            tip:  getWeatherTip(data.main.temp, data.weather[0].id),
+          });
+        } else {
+          setWeather(getFallbackWeather());
+        }
+      } catch {
+        setWeather(getFallbackWeather());
+      } finally {
+        setWeatherLoading(false);
+      }
+    };
+    fetchWeather();
+  }, []);
 
-  const currentStep = STEPS[step];
-
-  const goNext = () => {
-    if (animating) return;
-    setAnimating(true);
-    setTimeout(() => { setStep((s) => Math.min(s + 1, STEPS.length - 1)); setAnimating(false); }, 280);
+  const getWeatherEmoji = (id) => {
+    if (id >= 200 && id < 300) return "⛈";
+    if (id >= 300 && id < 400) return "🌦";
+    if (id >= 500 && id < 600) return "🌧";
+    if (id >= 600 && id < 700) return "❄️";
+    if (id >= 700 && id < 800) return "🌫";
+    if (id === 800) return "☀️";
+    if (id > 800) return "⛅";
+    return "🌤";
   };
 
-  const goBack = () => {
-    if (animating || step === 0) return;
-    setAnimating(true);
-    setTimeout(() => { setStep((s) => Math.max(s - 1, 0)); setAnimating(false); }, 280);
+  const getWeatherTip = (temp, id) => {
+    if (id >= 500 && id < 600) return "Rainy day ahead — your Classic trench coat pairs perfectly with wide-leg trousers.";
+    if (id >= 200 && id < 300) return "Storms rolling in — your longline coat and wool turtleneck are a Classic power move.";
+    if (temp < 40) return "Freezing out — your cashmere turtleneck and tailored wool coat are your Classic armor today.";
+    if (temp < 50) return "Cold and crisp — layer your Polo button-down under your Agolde coat for a clean Classic look.";
+    if (temp < 60) return "Cool breeze today — your Paul Smith blazer over a Loro Piana turtleneck is peak Classic style.";
+    if (temp < 72) return "Mild and breezy — your linen shirt with Celine wide-leg trousers is effortlessly Classic.";
+    if (temp < 82) return "Warm and sunny — your Polo linen shirt and Rag & Bone jeans are a Classic warm-weather win.";
+    return "It's hot — your lightest linen pieces and Bottega aviators are the Classic summer move.";
   };
 
-  const toggleStyle = (id) => setForm((f) => ({ ...f, styles: f.styles.includes(id) ? f.styles.filter((s) => s !== id) : [...f.styles, id] }));
-  const toggleOccasion = (o) => setForm((f) => ({ ...f, occasions: f.occasions.includes(o) ? f.occasions.filter((x) => x !== o) : [...f.occasions, o] }));
-  const togglePriority = (id) => setForm((f) => ({ ...f, priorities: f.priorities.includes(id) ? f.priorities.filter((x) => x !== id) : [...f.priorities, id] }));
+  const getFallbackWeather = () => ({
+    temp: 71, high: 78, low: 62,
+    desc: "Sunny & clear", icon: "☀️",
+    city: "Frisco, TX",
+    tip: "Mild and breezy — your linen shirt with Celine wide-leg trousers is effortlessly Classic.",
+  });
 
-  const canProceed = () => {
-    if (currentStep === "name") return form.name.trim().length > 0;
-    if (currentStep === "style") return form.styles.length > 0;
-    if (currentStep === "occasions") return form.occasions.length > 0;
-    if (currentStep === "priorities") return form.priorities.length > 0;
-    return true;
+  const cycleOutfit = () => {
+    setOutfitIdx(i => (i + 1) % DAILY_OUTFITS.length);
+    setWorn(false);
   };
+
+  const outfit = DAILY_OUTFITS[outfitIdx];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F8F6F1", fontFamily: "'Cormorant Garamond', 'Georgia', serif", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0", position: "relative", overflow: "hidden" }}>
+    <div style={{ minHeight:"100vh", background:"#F8F6F1", fontFamily:"'Cormorant Garamond','Georgia',serif", display:"flex", flexDirection:"column", maxWidth:420, margin:"0 auto" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:wght@300;400;500&display=swap');
+        * { box-sizing:border-box; margin:0; padding:0; }
 
-        .drobe-screen { width: 100%; max-width: 420px; min-height: 100vh; display: flex; flex-direction: column; padding: 0 28px 40px; position: relative; }
+        .icon-btn { background:none; border:none; cursor:pointer; color:#1A1A1A; padding:2px; display:flex; }
 
-        .welcome-screen { width: 100%; max-width: 420px; min-height: 100vh; display: flex; flex-direction: column; position: relative; overflow: hidden; }
-        .welcome-bg { position: absolute; inset: 0; background-image: url('https://images.unsplash.com/photo-1509631179647-0177331693ae?w=900&q=80&fit=crop&crop=top'); background-size: cover; background-position: center top; z-index: 0; }
-        .welcome-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.0) 30%, rgba(0,0,0,0.5) 62%, rgba(0,0,0,0.88) 100%); z-index: 1; }
-        .welcome-content { position: relative; z-index: 2; display: flex; flex-direction: column; justify-content: space-between; min-height: 100vh; padding: 64px 28px 48px; }
+        .weather-wrap { position:relative; border-radius:16px; overflow:hidden; margin-bottom:20px; }
+        .weather-bg { position:absolute; inset:0; background:linear-gradient(135deg,#2C2416 0%,#3D2F1A 40%,#4A3828 70%,#1E1810 100%); }
+        .weather-glow1 { position:absolute; width:140px; height:140px; border-radius:50%; background:radial-gradient(circle,rgba(200,170,110,0.45) 0%,transparent 70%); top:-30px; right:-10px; }
+        .weather-glow2 { position:absolute; width:100px; height:100px; border-radius:50%; background:radial-gradient(circle,rgba(180,140,80,0.3) 0%,transparent 70%); bottom:-10px; left:20px; }
+        .weather-glow3 { position:absolute; width:70px; height:70px; border-radius:50%; background:radial-gradient(circle,rgba(240,210,160,0.2) 0%,transparent 70%); top:50%; right:40%; transform:translateY(-50%); }
+        .weather-glass { position:relative; z-index:2; background:rgba(248,246,241,0.1); border:1px solid rgba(248,246,241,0.18); border-radius:16px; padding:16px 18px; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); }
+        .weather-badge { display:inline-flex; background:rgba(248,246,241,0.12); border:0.5px solid rgba(248,246,241,0.22); border-radius:100px; padding:3px 10px; font-family:'DM Sans',sans-serif; font-size:9px; color:rgba(248,246,241,0.65); letter-spacing:0.08em; text-transform:uppercase; margin-top:8px; }
+        .weather-shimmer { background: linear-gradient(90deg, #2A2A2A 25%, #3A3A3A 50%, #2A2A2A 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:8px; height:96px; margin-bottom:20px; }
+        @keyframes shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
 
-        .grain-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); opacity: 0.4; }
+        .outfit-hero { background:#fff; border:0.5px solid #E8E4DC; border-radius:8px; overflow:hidden; margin-bottom:20px; }
+        .outfit-items-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#F0EDE8; }
+        .outfit-item { background:#F8F6F1; aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:8px 4px; }
+        .outfit-emoji { font-size:22px; }
+        .outfit-item-name { font-family:'DM Sans',sans-serif; font-size:9px; color:#AAA; text-align:center; line-height:1.2; font-weight:300; }
 
-        .style-chip { border: 0.5px solid #D4CFC6; border-radius: 2px; padding: 14px 16px; cursor: pointer; transition: all 0.18s ease; background: transparent; text-align: left; }
-        .style-chip:hover { border-color: #1A1A1A; background: #fff; }
-        .style-chip.selected { border-color: #1A1A1A; background: #1A1A1A; color: #F8F6F1; }
+        .stat-strip { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:20px; }
+        .stat-box { background:#fff; border:0.5px solid #E8E4DC; border-radius:6px; padding:12px 10px; text-align:center; }
 
-        .pill { border: 0.5px solid #D4CFC6; border-radius: 100px; padding: 10px 20px; cursor: pointer; transition: all 0.18s ease; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 400; color: #1A1A1A; white-space: nowrap; }
-        .pill:hover { border-color: #1A1A1A; }
-        .pill.selected { background: #1A1A1A; color: #F8F6F1; border-color: #1A1A1A; }
+        .recent-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .look-card { border-radius:6px; overflow:hidden; cursor:pointer; transition:transform 0.15s; }
+        .look-card:hover { transform:scale(0.97); }
+        .look-thumb { aspect-ratio:3/4; display:flex; align-items:center; justify-content:center; font-size:32px; }
 
-        .priority-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 0.5px solid #E8E4DC; cursor: pointer; transition: all 0.15s ease; }
-        .priority-row:first-child { border-top: 0.5px solid #E8E4DC; }
-        .priority-row:hover .priority-check { border-color: #1A1A1A; }
+        .refresh-btn { background:none; border:1px solid #E0DCD5; border-radius:100px; padding:4px 12px; font-family:'DM Sans',sans-serif; font-size:10px; color:#AAA; cursor:pointer; transition:all 0.15s; }
+        .refresh-btn:hover { border-color:#1A1A1A; color:#1A1A1A; }
+        .wear-btn { background:#1A1A1A; color:#F8F6F1; border:none; border-radius:2px; padding:8px 16px; font-family:'DM Sans',sans-serif; font-size:10px; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; cursor:pointer; transition:background 0.15s; flex-shrink:0; }
+        .wear-btn:hover { background:#2D2D2D; }
+        .wear-btn.worn { background:#555; }`}</style>
 
-        .priority-check { width: 20px; height: 20px; border: 1px solid #D4CFC6; border-radius: 2px; display: flex; align-items: center; justify-content: center; transition: all 0.15s ease; flex-shrink: 0; }
-        .priority-check.checked { background: #1A1A1A; border-color: #1A1A1A; }
+      <div style={{ flex:1, overflowY:"auto", padding:"48px 20px 100px" }}>
 
-        .cta-btn { width: 100%; padding: 16px; background: #1A1A1A; color: #F8F6F1; border: none; border-radius: 2px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; transition: all 0.18s ease; }
-        .cta-btn:hover:not(:disabled) { background: #2D2D2D; }
-        .cta-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-        .cta-btn.ghost { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.35); }
-        .cta-btn.ghost:hover { border-color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.08); }
-        .cta-btn.ghost-dark { background: transparent; color: #1A1A1A; border: 0.5px solid #D4CFC6; }
-        .cta-btn.ghost-dark:hover { border-color: #1A1A1A; }
-
-        .name-input { width: 100%; background: transparent; border: none; border-bottom: 0.5px solid #D4CFC6; padding: 12px 0; font-family: 'Cormorant Garamond', serif; font-size: 28px; font-weight: 300; color: #1A1A1A; outline: none; transition: border-color 0.2s; }
-        .name-input::placeholder { color: #C4BFB5; }
-        .name-input:focus { border-bottom-color: #1A1A1A; }
-
-        .progress-bar-track { width: 100%; height: 1px; background: #E8E4DC; position: relative; }
-        .progress-bar-fill { height: 1px; background: #1A1A1A; transition: width 0.5s cubic-bezier(0.22,1,0.36,1); }
-
-        .done-mark { width: 64px; height: 64px; border: 1px solid #1A1A1A; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; animation: scaleIn 0.5s cubic-bezier(0.22,1,0.36,1) forwards; }
-        @keyframes scaleIn { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .fade-up   { animation: fadeUp 0.6s 0.00s ease both; }
-        .fade-up-1 { animation: fadeUp 0.6s 0.12s ease both; }
-        .fade-up-2 { animation: fadeUp 0.6s 0.25s ease both; }
-        .fade-up-3 { animation: fadeUp 0.6s 0.40s ease both; }
-        .fade-up-4 { animation: fadeUp 0.6s 0.55s ease both; }
-      `}</style>
-
-      <div className="grain-overlay" />
-
-      {/* ── WELCOME: full-bleed photo ── */}
-      {currentStep === "welcome" && (
-        <div className="welcome-screen">
-          <div className="welcome-bg" />
-          <div className="welcome-overlay" />
-          <div className="welcome-content">
-            <div className="fade-up">
-              <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, letterSpacing: "0.22em", color: "rgba(255,255,255,0.6)", textTransform: "uppercase" }}>
-                Your personal AI stylist
-              </span>
-              <h1 style={{ fontSize: 76, fontWeight: 300, lineHeight: 0.88, letterSpacing: "-0.02em", color: "#fff", marginTop: 10 }}>
-                DRO<br /><em style={{ fontStyle: "italic" }}>BE</em>
-              </h1>
-            </div>
-            <div>
-              <div className="fade-up-2" style={{ marginBottom: 32 }}>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "rgba(255,255,255,0.75)", lineHeight: 1.7, fontWeight: 300 }}>
-                  A wardrobe that thinks.<br />Style that knows you.
-                </p>
-              </div>
-              <div className="fade-up-3" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <button className="cta-btn" onClick={goNext}>Begin your style profile</button>
-                <button className="cta-btn ghost" onClick={() => onComplete && onComplete()}>I already have an account</button>
-              </div>
-              <div className="fade-up-4" style={{ marginTop: 28, textAlign: "center" }}>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "rgba(255,255,255,0.3)", letterSpacing: "0.08em" }}>
-                  FEATURED IN VOGUE · ELLE · FORBES
-                </p>
-              </div>
-            </div>
+        {/* GREETING */}
+        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:22 }}>
+          <div style={{ flex:1, marginRight:16 }}>
+            <h1 style={{ fontSize:26, fontWeight:300, color:"#1A1A1A", lineHeight:1.1, marginBottom:8 }}>
+              {greeting}, <em style={{ fontStyle:"italic" }}>Alex.</em>
+            </h1>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:12, color:"#B8A898", fontWeight:300, lineHeight:1.6, fontStyle:"italic" }}>
+              "This look is tailored just for you — no one else will look as good as you today."
+            </p>
+          </div>
+          <div style={{ display:"flex", gap:14, marginTop:4 }}>
+            {[
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round"/></svg>,
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" strokeLinecap="round"/></svg>,
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35" strokeLinecap="round"/></svg>
+            ].map((icon, i) => (
+              <button key={i} className="icon-btn" style={{ position:"relative" }} onClick={() => {
+                if (i === 0) onNavigate && onNavigate("calendar");
+                if (i === 1) { if(feedbackBadge) setPending(pendingFeedback); onNavigate && onNavigate("closet"); }
+              }}>
+                {icon}
+                {i === 1 && feedbackBadge && (
+                  <div style={{ position:"absolute", top:0, right:0, width:7, height:7, background:"#1A1A1A", borderRadius:"50%", border:"1.5px solid #F8F6F1" }}/>
+                )}
+              </button>
+            ))}
           </div>
         </div>
-      )}
 
-      {/* ── INNER SCREENS: original white design ── */}
-      {currentStep !== "welcome" && (
-        <div className="drobe-screen" style={{ zIndex: 1 }}>
-          <div style={{ paddingTop: 56, paddingBottom: 32 }}>
-            {currentStep !== "done" && (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-                <button onClick={goBack} style={{ background: "none", border: "none", cursor: "pointer", padding: "4px 0", fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#888", letterSpacing: "0.04em" }}>← back</button>
-                <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#AAA", letterSpacing: "0.1em" }}>{step} / {STEPS.length - 2}</span>
-              </div>
-            )}
-            {currentStep !== "done" && (
-              <div className="progress-bar-track">
-                <div className="progress-bar-fill" style={{ width: `${(step / (STEPS.length - 2)) * 100}%` }} />
-              </div>
-            )}
-          </div>
-
-          {/* NAME */}
-          {currentStep === "name" && (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }} className="fade-up">
-              <div style={{ marginBottom: 48 }}>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, letterSpacing: "0.18em", color: "#888", textTransform: "uppercase", marginBottom: 16 }}>Let's start with you</p>
-                <h2 style={{ fontSize: 38, fontWeight: 300, lineHeight: 1.1, color: "#1A1A1A" }}>What should<br />we call you?</h2>
-              </div>
-              <input className="name-input" placeholder="Your first name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && canProceed() && goNext()} autoFocus />
-              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: "#AAA", marginTop: 12 }}>DROBE will use this to personalize your experience</p>
-              <div style={{ marginTop: "auto", paddingTop: 40 }}>
-                <button className="cta-btn" onClick={goNext} disabled={!canProceed()}>Continue</button>
-              </div>
-            </div>
-          )}
-
-          {/* STYLE */}
-          {currentStep === "style" && (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }} className="fade-up">
-              <div style={{ marginBottom: 32 }}>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, letterSpacing: "0.18em", color: "#888", textTransform: "uppercase", marginBottom: 16 }}>Your aesthetic</p>
-                <h2 style={{ fontSize: 38, fontWeight: 300, lineHeight: 1.1, color: "#1A1A1A", marginBottom: 8 }}>How would you<br />describe your style?</h2>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#999" }}>Select all that apply</p>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: "auto" }}>
-                {STYLE_OPTIONS.map((s) => (
-                  <button key={s.id} className={`style-chip${form.styles.includes(s.id) ? " selected" : ""}`} onClick={() => toggleStyle(s.id)}>
-                    <div style={{ fontSize: 18, marginBottom: 6, opacity: 0.6 }}>{s.emoji}</div>
-                    <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 2 }}>{s.label}</div>
-                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, opacity: 0.6, fontWeight: 300 }}>{s.desc}</div>
-                  </button>
-                ))}
-              </div>
-              <div style={{ paddingTop: 24 }}>
-                <button className="cta-btn" onClick={goNext} disabled={!canProceed()}>Continue</button>
-              </div>
-            </div>
-          )}
-
-          {/* OCCASIONS */}
-          {currentStep === "occasions" && (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }} className="fade-up">
-              <div style={{ marginBottom: 32 }}>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, letterSpacing: "0.18em", color: "#888", textTransform: "uppercase", marginBottom: 16 }}>Your lifestyle</p>
-                <h2 style={{ fontSize: 38, fontWeight: 300, lineHeight: 1.1, color: "#1A1A1A", marginBottom: 8 }}>When do you<br />need to get dressed?</h2>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#999" }}>Select all that apply</p>
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: "auto" }}>
-                {OCCASION_OPTIONS.map((o) => (
-                  <button key={o} className={`pill${form.occasions.includes(o) ? " selected" : ""}`} onClick={() => toggleOccasion(o)}>{o}</button>
-                ))}
-              </div>
-              <div style={{ paddingTop: 24 }}>
-                <button className="cta-btn" onClick={goNext} disabled={!canProceed()}>Continue</button>
-              </div>
-            </div>
-          )}
-
-          {/* PRIORITIES */}
-          {currentStep === "priorities" && (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }} className="fade-up">
-              <div style={{ marginBottom: 32 }}>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, letterSpacing: "0.18em", color: "#888", textTransform: "uppercase", marginBottom: 16 }}>Almost done</p>
-                <h2 style={{ fontSize: 38, fontWeight: 300, lineHeight: 1.1, color: "#1A1A1A", marginBottom: 8 }}>What matters<br />most to you?</h2>
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: "#999" }}>DROBE will prioritize these features</p>
-              </div>
-              <div style={{ marginBottom: "auto" }}>
-                {PRIORITY_OPTIONS.map((p) => (
-                  <div key={p.id} className="priority-row" onClick={() => togglePriority(p.id)}>
-                    <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 300, color: "#1A1A1A" }}>{p.label}</span>
-                    <div className={`priority-check${form.priorities.includes(p.id) ? " checked" : ""}`}>
-                      {form.priorities.includes(p.id) && (
-                        <svg width="12" height="9" viewBox="0 0 12 9" fill="none">
-                          <path d="M1 4L4.5 7.5L11 1" stroke="#F8F6F1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ paddingTop: 24 }}>
-                <button className="cta-btn" onClick={goNext} disabled={!canProceed()}>Build my wardrobe</button>
-              </div>
-            </div>
-          )}
-
-          {/* DONE */}
-          {currentStep === "done" && (
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
-              <div className="done-mark fade-up" style={{ marginBottom: 32 }}>✓</div>
-              <h2 className="fade-up-1" style={{ fontSize: 42, fontWeight: 300, lineHeight: 1.1, color: "#1A1A1A", marginBottom: 16 }}>
-                {form.name ? `Welcome, ${form.name}.` : "Welcome."}
-              </h2>
-              <p className="fade-up-2" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: "#888", lineHeight: 1.7, maxWidth: 280, marginBottom: 48 }}>
-                Your style profile is ready. Let's build your digital wardrobe.
-              </p>
-              <div className="fade-up-3" style={{ width: "100%" }}>
-                <button className="cta-btn" onClick={() => onComplete && onComplete()}>Enter DROBE</button>
-              </div>
-              {form.styles.length > 0 && (
-                <div className="fade-up-4" style={{ marginTop: 32, display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-                  {form.styles.map(s => (
-                    <span key={s} style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: "#AAA", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                      {STYLE_OPTIONS.find(o => o.id === s)?.label}
-                    </span>
-                  ))}
+        {/* WEATHER */}
+        {weatherLoading ? (
+          <div className="weather-shimmer" />
+        ) : (
+          <div className="weather-wrap">
+            <div className="weather-bg" />
+            <div className="weather-glow1" />
+            <div className="weather-glow2" />
+            <div className="weather-glow3" />
+            <div className="weather-glass">
+              <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
+                <div>
+                  <div style={{ fontSize:42, fontWeight:300, color:"#fff", lineHeight:1, letterSpacing:"-0.02em" }}>{weather.temp}°</div>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"rgba(255,255,255,0.6)", fontWeight:300, marginTop:4, letterSpacing:"0.04em", textTransform:"capitalize" }}>{weather.desc}</div>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:"rgba(255,255,255,0.35)", letterSpacing:"0.1em", textTransform:"uppercase", marginTop:6 }}>{weather.city}</div>
                 </div>
-              )}
+                <div style={{ textAlign:"right", display:"flex", flexDirection:"column", alignItems:"flex-end" }}>
+                  <div style={{ fontSize:40, lineHeight:1 }}>{weather.icon}</div>
+                  <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:"rgba(255,255,255,0.4)", marginTop:4 }}>H:{weather.high}° · L:{weather.low}°</div>
+                  <div className="weather-badge">Today</div>
+                </div>
+              </div>
+              <div style={{ height:"0.5px", background:"rgba(255,255,255,0.12)", margin:"12px 0" }} />
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:"rgba(255,255,255,0.55)", fontWeight:300, lineHeight:1.5 }}>
+                ✦ {weather.tip}
+              </div>
             </div>
-          )}
+          </div>
+        )}
+
+        {/* TODAY'S OUTFIT */}
+        <div style={{ display:"flex", alignItems:"baseline", justifyContent:"space-between", marginBottom:12 }}>
+          <span style={{ fontSize:18, fontWeight:400, color:"#1A1A1A" }}>Today's Look</span>
+          <button className="refresh-btn" onClick={cycleOutfit}>Refresh ↻</button>
         </div>
-      )}
+
+        <div className="outfit-hero">
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 14px 10px", borderBottom:"0.5px solid #F0EDE8" }}>
+            <div>
+              <div style={{ fontSize:17, fontWeight:400, color:"#1A1A1A", marginBottom:2 }}>{outfit.name}</div>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:"#AAA", fontWeight:300, letterSpacing:"0.06em", textTransform:"uppercase" }}>{outfit.occ}</div>
+            </div>
+            <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:"#F8F6F1", background:"#1A1A1A", padding:"4px 10px", borderRadius:100, letterSpacing:"0.06em", textTransform:"uppercase", flexShrink:0 }}>{outfit.badge}</div>
+          </div>
+          <div className="outfit-items-grid">
+            {outfit.items.map((item, i) => (
+              <div key={i} className="outfit-item">
+                <div className="outfit-emoji">{item.e}</div>
+                <div className="outfit-item-name">{item.n}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ padding:"10px 14px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            <p style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#888", fontStyle:"italic", fontWeight:300 }}>"{outfit.note}"</p>
+            <button className={`wear-btn${worn ? " worn" : ""}`} onClick={() => {
+                setWorn(true);
+                const outfit = DAILY_OUTFITS[outfitIdx];
+                const entry = {
+                  outfitName: outfit.name,
+                  date: new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),
+                  occasion: outfit.occ,
+                  items: outfit.items,
+                  feedback: [],
+                  wornAt: new Date().toISOString(),
+                };
+                setTimeout(() => { setWorn(false); setPending(entry); setBadge(true); }, 2000);
+              }}>
+              {worn ? "✓ Logged" : "Wearing this"}
+            </button>
+          </div>
+        </div>
+
+        {/* STATS */}
+        <div className="stat-strip">
+          {[["42","Items owned"],["8","Outfits saved"],["3×","Avg. wear"]].map(([num,lbl]) => (
+            <div key={lbl} className="stat-box">
+              <div style={{ fontSize:22, fontWeight:300, color:"#1A1A1A", lineHeight:1 }}>{num}</div>
+              <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:9, color:"#AAA", fontWeight:300, marginTop:3, textTransform:"uppercase", letterSpacing:"0.06em" }}>{lbl}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* RECENT LOOKS */}
+        <div style={{ display:"flex", alignItems:"baseline", justifyContent:"space-between", marginBottom:12 }}>
+          <span style={{ fontSize:18, fontWeight:400, color:"#1A1A1A" }}>Recent Looks</span>
+          <span style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, color:"#AAA", cursor:"pointer" }}>See all</span>
+        </div>
+        <div className="recent-grid">
+          {RECENT_LOOKS.slice(0,2).map((look, i) => (
+            <div key={i} className="look-card">
+              <div className="look-thumb" style={{ background:look.bg }}>{look.e}</div>
+              <div style={{ paddingTop:6 }}>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:11, fontWeight:400, color:"#1A1A1A" }}>{look.name}</div>
+                <div style={{ fontFamily:"'DM Sans',sans-serif", fontSize:10, color:"#AAA", fontWeight:300, marginTop:1 }}>{look.date}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+))}
+      </div>
+    </div>
+
+      <FeedbackSystem
+        pendingFeedback={pendingFeedback}
+        onFeedbackSubmit={(entry, fb) => {
+          setHistory(prev => [{ ...entry, feedback: fb }, ...prev]);
+          setPending(null);
+          setBadge(false);
+        }}
+        onFeedbackDismiss={() => { setPending(null); setBadge(false); }}
+        feedbackHistory={feedbackHistory}
+        onNavigate={onNavigate}
+      />
     </div>
   );
 }
